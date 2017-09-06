@@ -53,12 +53,18 @@ func init() {
         "tags": [
           "services"
         ],
-        "operationId": "getOne",
+        "operationId": "getService",
         "responses": {
           "200": {
             "description": "OK",
             "schema": {
               "$ref": "#/definitions/service"
+            }
+          },
+          "default": {
+            "description": "error",
+            "schema": {
+              "$ref": "#/definitions/error"
             }
           }
         }
@@ -67,7 +73,7 @@ func init() {
         "tags": [
           "services"
         ],
-        "operationId": "updateOne",
+        "operationId": "createOrUpdateService",
         "parameters": [
           {
             "name": "body",
@@ -96,7 +102,7 @@ func init() {
         "tags": [
           "services"
         ],
-        "operationId": "destroyOne",
+        "operationId": "deleteService",
         "responses": {
           "204": {
             "description": "Deleted"
@@ -162,7 +168,7 @@ func init() {
     "serviceSpecification": {
       "type": "object",
       "required": [
-        "replicas"
+        "name"
       ],
       "properties": {
         "depends": {
@@ -173,6 +179,9 @@ func init() {
           "items": {
             "type": "string"
           }
+        },
+        "name": {
+          "type": "string"
         },
         "reference": {
           "type": "string"

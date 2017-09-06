@@ -1,0 +1,118 @@
+consumes:
+- application/json
+definitions:
+  error:
+    type: object
+    required:
+      - message
+    properties:
+      code:
+        type: integer
+        format: int64
+      message:
+        type: string
+  serviceSpecification:
+    type: object
+    required:
+    - name
+    properties:
+      name:
+        type: string
+      replicas:
+        type: integer
+        format: int32
+      images:
+        type: array
+        items:
+          type: string
+      reference:
+        type: string
+      depends:
+        type: string
+  service:
+    type: object
+    required:
+    - guid
+    - name
+    properties:
+      guid:
+        type: integer
+        format: int64
+        readOnly: true
+      name:
+        type: string
+        minLength: 1
+      services:
+        type: array
+        items:
+          $ref: '#/definitions/serviceSpecification'
+        
+info:
+  description: The metaparticle API
+  title: An application for easier distributed application generation
+  version: 0.0.1
+paths:
+  /services:
+    get:
+      tags:
+        - services
+      responses:
+        200:
+          description: list the services
+          schema:
+            type: array
+            items:
+              $ref: "#/definitions/service"
+  /services/{name}:
+    parameters:
+    - type: string
+      name: name
+      in: path
+      required: true
+    get:
+      tags:
+      - services
+      operationId: getService
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: "#/definitions/service"
+        default:
+          description: error
+          schema:
+            $ref: "#/definitions/error"
+    put:
+      tags:
+      - services
+      operationId: createOrUpdateService
+      parameters:
+        - name: body
+          in: body
+          schema:
+            $ref: "#/definitions/service"
+      responses:
+        '200':
+          description: OK
+          schema:
+            $ref: "#/definitions/service"
+        default:
+          description: error
+          schema:
+            $ref: "#/definitions/error"
+    delete:
+      tags:
+        - services
+      operationId: deleteService
+      responses:
+        204:
+          description: Deleted
+        default:
+          description: error
+          schema:
+            $ref: "#/definitions/error"
+produces:
+- application/json
+schemes:
+- http
+swagger: "2.0"

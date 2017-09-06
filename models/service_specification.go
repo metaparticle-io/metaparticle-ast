@@ -24,17 +24,22 @@ type ServiceSpecification struct {
 	// images
 	Images []string `json:"images"`
 
+	// name
+	// Required: true
+	Name *string `json:"name"`
+
 	// reference
 	Reference string `json:"reference,omitempty"`
 
 	// replicas
-	// Required: true
-	Replicas *int32 `json:"replicas"`
+	Replicas int32 `json:"replicas,omitempty"`
 }
 
 /* polymorph serviceSpecification depends false */
 
 /* polymorph serviceSpecification images false */
+
+/* polymorph serviceSpecification name false */
 
 /* polymorph serviceSpecification reference false */
 
@@ -49,7 +54,7 @@ func (m *ServiceSpecification) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
-	if err := m.validateReplicas(formats); err != nil {
+	if err := m.validateName(formats); err != nil {
 		// prop
 		res = append(res, err)
 	}
@@ -69,9 +74,9 @@ func (m *ServiceSpecification) validateImages(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *ServiceSpecification) validateReplicas(formats strfmt.Registry) error {
+func (m *ServiceSpecification) validateName(formats strfmt.Registry) error {
 
-	if err := validate.Required("replicas", "body", m.Replicas); err != nil {
+	if err := validate.Required("name", "body", m.Name); err != nil {
 		return err
 	}
 

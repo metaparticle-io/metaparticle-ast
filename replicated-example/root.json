@@ -1,0 +1,14 @@
+{
+    "name": "root-service",
+    "guid": 4567889,
+    "services": [
+        {
+            "name": "server",
+            "replicas": 4,
+            "images": [
+                "sharder",
+                "random-shard-image"
+            ]
+        }
+    ]
+}

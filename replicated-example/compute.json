@@ -1,0 +1,13 @@
+{
+    "name": "compute-service",
+    "guid": 23456,
+    "services": [
+        {
+            "name": "server",
+            "replicas": 4,
+            "images": [
+                "compute-image"
+            ]
+        }
+    ]
+}

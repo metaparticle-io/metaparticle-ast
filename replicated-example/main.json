@@ -1,0 +1,16 @@
+{
+    "name": "replicated",
+    "guid": 9876,
+    "entrypoint": "root",
+    "services": [
+        {
+            "name": "root",
+            "reference": "root-service",
+            "depends": "compute"
+        },
+        {
+            "name": "compute",
+            "reference": "compute-service"
+        }
+    ]
+}

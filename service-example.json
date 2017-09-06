@@ -1,0 +1,16 @@
+{
+    "name": "name",
+    "guid": 1234567, 
+    "services": [ 
+        {
+	    "name": "server",
+            "replicas": 1,
+            "images": [
+                "nginx"
+            ]        
+        }
+    ],
+    "serve": {
+        "name": "server"
+    }
+}

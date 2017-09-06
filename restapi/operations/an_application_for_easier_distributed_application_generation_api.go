@@ -19,7 +19,7 @@ import (
 	strfmt "github.com/go-openapi/strfmt"
 	"github.com/go-openapi/swag"
 
-	"../../metaparticle-ast/restapi/operations/services"
+	"github.com/metaparticle-io/metaparticle-ast/restapi/operations/services"
 )
 
 // NewAnApplicationForEasierDistributedApplicationGenerationAPI creates a new AnApplicationForEasierDistributedApplicationGeneration instance
@@ -40,14 +40,14 @@ func NewAnApplicationForEasierDistributedApplicationGenerationAPI(spec *loads.Do
 		ServicesGetServicesHandler: services.GetServicesHandlerFunc(func(params services.GetServicesParams) middleware.Responder {
 			return middleware.NotImplemented("operation ServicesGetServices has not yet been implemented")
 		}),
-		ServicesDestroyOneHandler: services.DestroyOneHandlerFunc(func(params services.DestroyOneParams) middleware.Responder {
-			return middleware.NotImplemented("operation ServicesDestroyOne has not yet been implemented")
+		ServicesCreateOrUpdateServiceHandler: services.CreateOrUpdateServiceHandlerFunc(func(params services.CreateOrUpdateServiceParams) middleware.Responder {
+			return middleware.NotImplemented("operation ServicesCreateOrUpdateService has not yet been implemented")
 		}),
-		ServicesGetOneHandler: services.GetOneHandlerFunc(func(params services.GetOneParams) middleware.Responder {
-			return middleware.NotImplemented("operation ServicesGetOne has not yet been implemented")
+		ServicesDeleteServiceHandler: services.DeleteServiceHandlerFunc(func(params services.DeleteServiceParams) middleware.Responder {
+			return middleware.NotImplemented("operation ServicesDeleteService has not yet been implemented")
 		}),
-		ServicesUpdateOneHandler: services.UpdateOneHandlerFunc(func(params services.UpdateOneParams) middleware.Responder {
-			return middleware.NotImplemented("operation ServicesUpdateOne has not yet been implemented")
+		ServicesGetServiceHandler: services.GetServiceHandlerFunc(func(params services.GetServiceParams) middleware.Responder {
+			return middleware.NotImplemented("operation ServicesGetService has not yet been implemented")
 		}),
 	}
 }
@@ -80,12 +80,12 @@ type AnApplicationForEasierDistributedApplicationGenerationAPI struct {
 
 	// ServicesGetServicesHandler sets the operation handler for the get services operation
 	ServicesGetServicesHandler services.GetServicesHandler
-	// ServicesDestroyOneHandler sets the operation handler for the destroy one operation
-	ServicesDestroyOneHandler services.DestroyOneHandler
-	// ServicesGetOneHandler sets the operation handler for the get one operation
-	ServicesGetOneHandler services.GetOneHandler
-	// ServicesUpdateOneHandler sets the operation handler for the update one operation
-	ServicesUpdateOneHandler services.UpdateOneHandler
+	// ServicesCreateOrUpdateServiceHandler sets the operation handler for the create or update service operation
+	ServicesCreateOrUpdateServiceHandler services.CreateOrUpdateServiceHandler
+	// ServicesDeleteServiceHandler sets the operation handler for the delete service operation
+	ServicesDeleteServiceHandler services.DeleteServiceHandler
+	// ServicesGetServiceHandler sets the operation handler for the get service operation
+	ServicesGetServiceHandler services.GetServiceHandler
 
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
@@ -153,16 +153,16 @@ func (o *AnApplicationForEasierDistributedApplicationGenerationAPI) Validate() e
 		unregistered = append(unregistered, "services.GetServicesHandler")
 	}
 
-	if o.ServicesDestroyOneHandler == nil {
-		unregistered = append(unregistered, "services.DestroyOneHandler")
+	if o.ServicesCreateOrUpdateServiceHandler == nil {
+		unregistered = append(unregistered, "services.CreateOrUpdateServiceHandler")
 	}
 
-	if o.ServicesGetOneHandler == nil {
-		unregistered = append(unregistered, "services.GetOneHandler")
+	if o.ServicesDeleteServiceHandler == nil {
+		unregistered = append(unregistered, "services.DeleteServiceHandler")
 	}
 
-	if o.ServicesUpdateOneHandler == nil {
-		unregistered = append(unregistered, "services.UpdateOneHandler")
+	if o.ServicesGetServiceHandler == nil {
+		unregistered = append(unregistered, "services.GetServiceHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -253,20 +253,20 @@ func (o *AnApplicationForEasierDistributedApplicationGenerationAPI) initHandlerC
 	}
 	o.handlers["GET"]["/services"] = services.NewGetServices(o.context, o.ServicesGetServicesHandler)
 
+	if o.handlers["PUT"] == nil {
+		o.handlers["PUT"] = make(map[string]http.Handler)
+	}
+	o.handlers["PUT"]["/services/{name}"] = services.NewCreateOrUpdateService(o.context, o.ServicesCreateOrUpdateServiceHandler)
+
 	if o.handlers["DELETE"] == nil {
 		o.handlers["DELETE"] = make(map[string]http.Handler)
 	}
-	o.handlers["DELETE"]["/services/{name}"] = services.NewDestroyOne(o.context, o.ServicesDestroyOneHandler)
+	o.handlers["DELETE"]["/services/{name}"] = services.NewDeleteService(o.context, o.ServicesDeleteServiceHandler)
 
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/services/{name}"] = services.NewGetOne(o.context, o.ServicesGetOneHandler)
-
-	if o.handlers["PUT"] == nil {
-		o.handlers["PUT"] = make(map[string]http.Handler)
-	}
-	o.handlers["PUT"]["/services/{name}"] = services.NewUpdateOne(o.context, o.ServicesUpdateOneHandler)
+	o.handlers["GET"]["/services/{name}"] = services.NewGetService(o.context, o.ServicesGetServiceHandler)
 
 }
 

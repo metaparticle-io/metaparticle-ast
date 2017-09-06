@@ -8,11 +8,10 @@ import (
 
 	errors "github.com/go-openapi/errors"
 	runtime "github.com/go-openapi/runtime"
-	middleware "github.com/go-openapi/runtime/middleware"
 	graceful "github.com/tylerb/graceful"
 
-	"../../metaparticle-ast/restapi/operations"
-	"../../metaparticle-ast/restapi/operations/services"
+	"github.com/metaparticle-io/metaparticle-ast/restapi/operations"
+	"github.com/metaparticle-io/metaparticle-ast/restapi/operations/services"
 )
 
 // This file is safe to edit. Once it exists it will not be overwritten
@@ -37,9 +36,15 @@ func configureAPI(api *operations.AnApplicationForEasierDistributedApplicationGe
 
 	api.JSONProducer = runtime.JSONProducer()
 
-	api.ServicesGetServicesHandler = services.GetServicesHandlerFunc(func(params services.GetServicesParams) middleware.Responder {
-		return middleware.NotImplemented("operation services.GetServices has not yet been implemented")
-	})
+	impl := &Impl{}
+
+	api.ServicesGetServicesHandler = services.GetServicesHandlerFunc(impl.HandleGetServices)
+
+	api.ServicesDeleteServiceHandler = services.DeleteServiceHandlerFunc(impl.HandleDestroyOne)
+
+	api.ServicesGetServiceHandler = services.GetServiceHandlerFunc(impl.HandleGetOne)
+
+	api.ServicesCreateOrUpdateServiceHandler = services.CreateOrUpdateServiceHandlerFunc(impl.HandleUpdateOne)
 
 	api.ServerShutdown = func() {}
 
