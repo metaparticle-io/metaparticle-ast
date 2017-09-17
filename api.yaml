@@ -11,6 +11,55 @@ definitions:
         format: int64
       message:
         type: string
+  shardSpecification:
+    type: object
+    properties:
+      # JSONPath for reaching into an object.
+      fieldPath:
+        type: string
+      # Regular Expression for matching in a URL
+      urlPattern:
+        type: string
+  serveSpecification:
+    type: object
+    required:
+    - name
+    properties:
+      name:
+        type: string
+      public:
+        type: boolean
+  envVar:
+    type: object
+    required:
+    - name
+    - value
+    properties:
+      name:
+        type: string
+      value:
+        type: string
+  container:
+    type: object
+    required:
+    - image
+    properties:
+      image:
+        type: string
+      env:
+        type: array
+        items:
+          $ref: '#/definitions/envVar'
+  servicePort:
+    type: object
+    required:
+    - number
+    properties:
+      number:
+        type: integer
+        format: int32
+      protocol:
+        type: string
   serviceSpecification:
     type: object
     required:
@@ -21,10 +70,19 @@ definitions:
       replicas:
         type: integer
         format: int32
-      images:
+      shards:
+        type: integer
+        format: int32
+      shardSpec:
+        $ref: '#/definitions/shardSpecification'
+      containers:
         type: array
         items:
-          type: string
+          $ref: '#/definitions/container'
+      ports:
+        type: array
+        items:
+          $ref: '#/definitions/servicePort'
       reference:
         type: string
       depends:
@@ -38,7 +96,6 @@ definitions:
       guid:
         type: integer
         format: int64
-        readOnly: true
       name:
         type: string
         minLength: 1
@@ -46,6 +103,9 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/serviceSpecification'
+      serve:
+        type: object
+        $ref: '#/definitions/serveSpecification'
         
 info:
   description: The metaparticle API
@@ -54,6 +114,7 @@ info:
 paths:
   /services:
     get:
+      operationId: listServices
       tags:
         - services
       responses:

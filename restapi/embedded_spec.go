@@ -35,6 +35,7 @@ func init() {
         "tags": [
           "services"
         ],
+        "operationId": "listServices",
         "responses": {
           "200": {
             "description": "list the services",
@@ -126,6 +127,38 @@ func init() {
     }
   },
   "definitions": {
+    "container": {
+      "type": "object",
+      "required": [
+        "image"
+      ],
+      "properties": {
+        "env": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/envVar"
+          }
+        },
+        "image": {
+          "type": "string"
+        }
+      }
+    },
+    "envVar": {
+      "type": "object",
+      "required": [
+        "name",
+        "value"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      }
+    },
     "error": {
       "type": "object",
       "required": [
@@ -141,6 +174,20 @@ func init() {
         }
       }
     },
+    "serveSpecification": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "public": {
+          "type": "boolean"
+        }
+      }
+    },
     "service": {
       "type": "object",
       "required": [
@@ -150,12 +197,15 @@ func init() {
       "properties": {
         "guid": {
           "type": "integer",
-          "format": "int64",
-          "readOnly": true
+          "format": "int64"
         },
         "name": {
           "type": "string",
           "minLength": 1
+        },
+        "serve": {
+          "type": "object",
+          "$ref": "#/definitions/serveSpecification"
         },
         "services": {
           "type": "array",
@@ -165,28 +215,53 @@ func init() {
         }
       }
     },
+    "servicePort": {
+      "type": "object",
+      "required": [
+        "number"
+      ],
+      "properties": {
+        "number": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "protocol": {
+          "type": "string"
+        }
+      }
+    },
     "serviceSpecification": {
       "type": "object",
       "required": [
         "name"
       ],
       "properties": {
+        "containers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/container"
+          }
+        },
         "depends": {
           "type": "string"
         },
-        "images": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
         "name": {
           "type": "string"
+        },
+        "ports": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/servicePort"
+          }
         },
         "reference": {
           "type": "string"
         },
         "replicas": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "shards": {
           "type": "integer",
           "format": "int32"
         }

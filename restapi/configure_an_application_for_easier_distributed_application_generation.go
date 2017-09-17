@@ -38,7 +38,7 @@ func configureAPI(api *operations.AnApplicationForEasierDistributedApplicationGe
 
 	impl := &Impl{}
 
-	api.ServicesGetServicesHandler = services.GetServicesHandlerFunc(impl.HandleGetServices)
+	api.ServicesListServicesHandler = services.ListServicesHandlerFunc(impl.HandleListServices)
 
 	api.ServicesDeleteServiceHandler = services.DeleteServiceHandlerFunc(impl.HandleDestroyOne)
 

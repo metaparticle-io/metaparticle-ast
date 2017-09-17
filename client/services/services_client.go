@@ -25,34 +25,6 @@ type Client struct {
 }
 
 /*
-GetServices get services API
-*/
-func (a *Client) GetServices(params *GetServicesParams) (*GetServicesOK, error) {
-	// TODO: Validate the params before sending
-	if params == nil {
-		params = NewGetServicesParams()
-	}
-
-	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "GetServices",
-		Method:             "GET",
-		PathPattern:        "/services",
-		ProducesMediaTypes: []string{"application/json"},
-		ConsumesMediaTypes: []string{"application/json"},
-		Schemes:            []string{"http"},
-		Params:             params,
-		Reader:             &GetServicesReader{formats: a.formats},
-		Context:            params.Context,
-		Client:             params.HTTPClient,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return result.(*GetServicesOK), nil
-
-}
-
-/*
 CreateOrUpdateService create or update service API
 */
 func (a *Client) CreateOrUpdateService(params *CreateOrUpdateServiceParams) (*CreateOrUpdateServiceOK, error) {
@@ -133,6 +105,34 @@ func (a *Client) GetService(params *GetServiceParams) (*GetServiceOK, error) {
 		return nil, err
 	}
 	return result.(*GetServiceOK), nil
+
+}
+
+/*
+ListServices list services API
+*/
+func (a *Client) ListServices(params *ListServicesParams) (*ListServicesOK, error) {
+	// TODO: Validate the params before sending
+	if params == nil {
+		params = NewListServicesParams()
+	}
+
+	result, err := a.transport.Submit(&runtime.ClientOperation{
+		ID:                 "listServices",
+		Method:             "GET",
+		PathPattern:        "/services",
+		ProducesMediaTypes: []string{"application/json"},
+		ConsumesMediaTypes: []string{"application/json"},
+		Schemes:            []string{"http"},
+		Params:             params,
+		Reader:             &ListServicesReader{formats: a.formats},
+		Context:            params.Context,
+		Client:             params.HTTPClient,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return result.(*ListServicesOK), nil
 
 }
 

@@ -3,14 +3,18 @@
     "guid": 1234567, 
     "services": [ 
         {
-	    "name": "server",
-            "replicas": 1,
-            "images": [
-                "nginx"
-            ]        
+	        "name": "server",
+            "replicas": 4,
+            "containers": [
+                { "image": "nginx" }
+            ],
+            "ports": [{
+                "number": 80
+            }]
         }
     ],
     "serve": {
-        "name": "server"
+        "name": "server",
+        "public": true
     }
 }

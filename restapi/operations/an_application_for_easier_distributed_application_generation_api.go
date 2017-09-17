@@ -37,9 +37,6 @@ func NewAnApplicationForEasierDistributedApplicationGenerationAPI(spec *loads.Do
 		BearerAuthenticator: security.BearerAuth,
 		JSONConsumer:        runtime.JSONConsumer(),
 		JSONProducer:        runtime.JSONProducer(),
-		ServicesGetServicesHandler: services.GetServicesHandlerFunc(func(params services.GetServicesParams) middleware.Responder {
-			return middleware.NotImplemented("operation ServicesGetServices has not yet been implemented")
-		}),
 		ServicesCreateOrUpdateServiceHandler: services.CreateOrUpdateServiceHandlerFunc(func(params services.CreateOrUpdateServiceParams) middleware.Responder {
 			return middleware.NotImplemented("operation ServicesCreateOrUpdateService has not yet been implemented")
 		}),
@@ -48,6 +45,9 @@ func NewAnApplicationForEasierDistributedApplicationGenerationAPI(spec *loads.Do
 		}),
 		ServicesGetServiceHandler: services.GetServiceHandlerFunc(func(params services.GetServiceParams) middleware.Responder {
 			return middleware.NotImplemented("operation ServicesGetService has not yet been implemented")
+		}),
+		ServicesListServicesHandler: services.ListServicesHandlerFunc(func(params services.ListServicesParams) middleware.Responder {
+			return middleware.NotImplemented("operation ServicesListServices has not yet been implemented")
 		}),
 	}
 }
@@ -78,14 +78,14 @@ type AnApplicationForEasierDistributedApplicationGenerationAPI struct {
 	// JSONProducer registers a producer for a "application/json" mime type
 	JSONProducer runtime.Producer
 
-	// ServicesGetServicesHandler sets the operation handler for the get services operation
-	ServicesGetServicesHandler services.GetServicesHandler
 	// ServicesCreateOrUpdateServiceHandler sets the operation handler for the create or update service operation
 	ServicesCreateOrUpdateServiceHandler services.CreateOrUpdateServiceHandler
 	// ServicesDeleteServiceHandler sets the operation handler for the delete service operation
 	ServicesDeleteServiceHandler services.DeleteServiceHandler
 	// ServicesGetServiceHandler sets the operation handler for the get service operation
 	ServicesGetServiceHandler services.GetServiceHandler
+	// ServicesListServicesHandler sets the operation handler for the list services operation
+	ServicesListServicesHandler services.ListServicesHandler
 
 	// ServeError is called when an error is received, there is a default handler
 	// but you can set your own with this
@@ -149,10 +149,6 @@ func (o *AnApplicationForEasierDistributedApplicationGenerationAPI) Validate() e
 		unregistered = append(unregistered, "JSONProducer")
 	}
 
-	if o.ServicesGetServicesHandler == nil {
-		unregistered = append(unregistered, "services.GetServicesHandler")
-	}
-
 	if o.ServicesCreateOrUpdateServiceHandler == nil {
 		unregistered = append(unregistered, "services.CreateOrUpdateServiceHandler")
 	}
@@ -163,6 +159,10 @@ func (o *AnApplicationForEasierDistributedApplicationGenerationAPI) Validate() e
 
 	if o.ServicesGetServiceHandler == nil {
 		unregistered = append(unregistered, "services.GetServiceHandler")
+	}
+
+	if o.ServicesListServicesHandler == nil {
+		unregistered = append(unregistered, "services.ListServicesHandler")
 	}
 
 	if len(unregistered) > 0 {
@@ -248,11 +248,6 @@ func (o *AnApplicationForEasierDistributedApplicationGenerationAPI) initHandlerC
 		o.handlers = make(map[string]map[string]http.Handler)
 	}
 
-	if o.handlers["GET"] == nil {
-		o.handlers["GET"] = make(map[string]http.Handler)
-	}
-	o.handlers["GET"]["/services"] = services.NewGetServices(o.context, o.ServicesGetServicesHandler)
-
 	if o.handlers["PUT"] == nil {
 		o.handlers["PUT"] = make(map[string]http.Handler)
 	}
@@ -267,6 +262,11 @@ func (o *AnApplicationForEasierDistributedApplicationGenerationAPI) initHandlerC
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
 	o.handlers["GET"]["/services/{name}"] = services.NewGetService(o.context, o.ServicesGetServiceHandler)
+
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/services"] = services.NewListServices(o.context, o.ServicesListServicesHandler)
 
 }
 

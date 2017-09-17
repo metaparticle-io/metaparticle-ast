@@ -14,7 +14,7 @@ type Impl struct {
 }
 
 // HandleGetServices implements the GetServiceHandler interface
-func (i *Impl) HandleGetServices(params services.GetServicesParams) middleware.Responder {
+func (i *Impl) HandleListServices(params services.ListServicesParams) middleware.Responder {
 	i.Lock()
 	defer i.Unlock()
 	result := []*models.Service{}

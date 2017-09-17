@@ -22,13 +22,15 @@ type Service struct {
 
 	// guid
 	// Required: true
-	// Read Only: true
-	GUID int64 `json:"guid"`
+	GUID *int64 `json:"guid"`
 
 	// name
 	// Required: true
 	// Min Length: 1
 	Name *string `json:"name"`
+
+	// serve
+	Serve *ServeSpecification `json:"serve,omitempty"`
 
 	// services
 	Services []*ServiceSpecification `json:"services"`
@@ -37,6 +39,8 @@ type Service struct {
 /* polymorph service guid false */
 
 /* polymorph service name false */
+
+/* polymorph service serve false */
 
 /* polymorph service services false */
 
@@ -54,6 +58,11 @@ func (m *Service) Validate(formats strfmt.Registry) error {
 		res = append(res, err)
 	}
 
+	if err := m.validateServe(formats); err != nil {
+		// prop
+		res = append(res, err)
+	}
+
 	if err := m.validateServices(formats); err != nil {
 		// prop
 		res = append(res, err)
@@ -67,7 +76,7 @@ func (m *Service) Validate(formats strfmt.Registry) error {
 
 func (m *Service) validateGUID(formats strfmt.Registry) error {
 
-	if err := validate.Required("guid", "body", int64(m.GUID)); err != nil {
+	if err := validate.Required("guid", "body", m.GUID); err != nil {
 		return err
 	}
 
@@ -82,6 +91,25 @@ func (m *Service) validateName(formats strfmt.Registry) error {
 
 	if err := validate.MinLength("name", "body", string(*m.Name), 1); err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (m *Service) validateServe(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Serve) { // not required
+		return nil
+	}
+
+	if m.Serve != nil {
+
+		if err := m.Serve.Validate(formats); err != nil {
+			if ve, ok := err.(*errors.Validation); ok {
+				return ve.ValidateName("serve")
+			}
+			return err
+		}
 	}
 
 	return nil
