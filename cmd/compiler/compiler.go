@@ -23,10 +23,11 @@ import (
 )
 
 var (
-	port = flag.Int("port", 8080, "The port to connect to.")
-	host = flag.String("host", "", "The host to connect to")
-	file = flag.StringP("file", "f", "", "The config file to load")
-	name = flag.StringP("name", "n", "", "The name of the service to compile")
+	port   = flag.Int("port", 8080, "The port to connect to.")
+	host   = flag.String("host", "", "The host to connect to")
+	file   = flag.StringP("file", "f", "", "The config file to load")
+	name   = flag.StringP("name", "n", "", "The name of the service to compile")
+	dryrun = flag.Bool("dry-run", false, "If true, just output what you would have sent.")
 )
 
 func homeDir() string {
@@ -280,15 +281,15 @@ func compile(service *models.Service, kubeconfig string) {
 	}
 
 	for ix := range service.Services {
-		if service.Services[ix].Replicas > 0 && service.Services[ix].Shards > 0 {
-			log.Fatalf("%s: Replicas and shards are mutually exclusive.", service.Services[ix].Name)
+		if service.Services[ix].Replicas > 0 && service.Services[ix].ShardSpec != nil {
+			log.Fatalf("%v: Replicas and shards are mutually exclusive.", service.Services[ix].Name)
 		}
 		if service.Services[ix].Replicas > 0 {
 			deploy(service.Services[ix], clientset)
 			public := *service.Serve.Name == *service.Services[ix].Name && service.Serve.Public
 			createLoadBalancedService(service.Services[ix], public, clientset)
 		}
-		if service.Services[ix].Shards > 0 {
+		if service.Services[ix].ShardSpec != nil && service.Services[ix].ShardSpec.Shards > 0 {
 			deployStateful(service.Services[ix], clientset)
 		}
 	}
