@@ -20,6 +20,9 @@ definitions:
       # Regular Expression for matching in a URL
       urlPattern:
         type: string
+      shards:
+        type: integer
+        format: int32
   serveSpecification:
     type: object
     required:
@@ -68,9 +71,6 @@ definitions:
       name:
         type: string
       replicas:
-        type: integer
-        format: int32
-      shards:
         type: integer
         format: int32
       shardSpec:

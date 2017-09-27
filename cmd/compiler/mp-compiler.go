@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -27,8 +28,16 @@ var (
 	host   = flag.String("host", "", "The host to connect to")
 	file   = flag.StringP("file", "f", "", "The config file to load")
 	name   = flag.StringP("name", "n", "", "The name of the service to compile")
-	dryrun = flag.Bool("dry-run", false, "If true, just output what you would have sent.")
+	dryrun = flag.Bool("dry-run", false, "If true, only output the execution plan, don't actually enact it.")
 )
+
+func output(obj interface{}) {
+	data, err := json.MarshalIndent(obj, "", "  ")
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+	os.Stdout.Write(data)
+}
 
 func homeDir() string {
 	if h := os.Getenv("HOME"); h != "" {
@@ -140,6 +149,11 @@ func deploy(service *models.ServiceSpecification, client *kubernetes.Clientset) 
 		},
 	}
 
+	if *dryrun {
+		output(deployment)
+		return
+	}
+
 	if _, err := client.ExtensionsV1beta1().Deployments("default").Create(deployment); err != nil {
 		log.Fatalf(err.Error())
 	}
@@ -172,8 +186,12 @@ func deployStateful(service *models.ServiceSpecification, client *kubernetes.Cli
 		},
 	}
 
-	if _, err := client.AppsV1beta1().StatefulSets("default").Create(deployment); err != nil {
-		log.Fatalf(err.Error())
+	if *dryrun {
+		output(deployment)
+	} else {
+		if _, err := client.AppsV1beta1().StatefulSets("default").Create(deployment); err != nil {
+			log.Fatalf(err.Error())
+		}
 	}
 
 	name = name + "-sharder"
@@ -204,6 +222,11 @@ func deployStateful(service *models.ServiceSpecification, client *kubernetes.Cli
 				},
 			},
 		},
+	}
+
+	if *dryrun {
+		output(shardDeployment)
+		return
 	}
 
 	if _, err := client.ExtensionsV1beta1().Deployments("default").Create(shardDeployment); err != nil {
@@ -242,6 +265,11 @@ func createLoadBalancedService(service *models.ServiceSpecification, public bool
 		svc.Spec.Type = "LoadBalancer"
 	}
 
+	if *dryrun {
+		output(svc)
+		return
+	}
+
 	if _, err := client.CoreV1().Services("default").Create(svc); err != nil {
 		log.Fatalf(err.Error())
 	}
@@ -261,6 +289,11 @@ func createStatefulService(service *models.ServiceSpecification, client *kuberne
 			Ports:     getPorts(service),
 			ClusterIP: "None",
 		},
+	}
+
+	if *dryrun {
+		output(svc)
+		return
 	}
 
 	if _, err := client.CoreV1().Services("default").Create(svc); err != nil {
