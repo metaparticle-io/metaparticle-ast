@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/golang/glog"
@@ -99,6 +100,10 @@ func main() {
 	compile(obj, *kubeconfig)
 }
 
+func makeSharderName(name string) string {
+	return fmt.Sprintf("%s-sharder", name)
+}
+
 func envvars(container *models.Container) []v1.EnvVar {
 	envvars := []v1.EnvVar{}
 	for _, env := range container.Env {
@@ -167,7 +172,7 @@ func deployStateful(service *models.ServiceSpecification, client *kubernetes.Cli
 			Name: name,
 		},
 		Spec: apps_v1beta1.StatefulSetSpec{
-			Replicas: &service.Replicas,
+			Replicas: &service.ShardSpec.Shards,
 			Selector: &meta.LabelSelector{
 				MatchLabels: map[string]string{
 					"app": name,
@@ -194,13 +199,13 @@ func deployStateful(service *models.ServiceSpecification, client *kubernetes.Cli
 		}
 	}
 
-	name = name + "-sharder"
+	name = makeSharderName(name)
 	shardDeployment := &v1beta1.Deployment{
 		ObjectMeta: meta.ObjectMeta{
 			Name: name,
 		},
 		Spec: v1beta1.DeploymentSpec{
-			Replicas: &service.Replicas,
+			Replicas: &service.ShardSpec.Shards,
 			Selector: &meta.LabelSelector{
 				MatchLabels: map[string]string{
 					"app": name,
@@ -217,6 +222,12 @@ func deployStateful(service *models.ServiceSpecification, client *kubernetes.Cli
 						v1.Container{
 							Name:  "sharder",
 							Image: "brendanburns/sharder",
+							Env: []v1.EnvVar{
+								v1.EnvVar{
+									Name:  "SHARD_ADDRESSES",
+									Value: getShardAddresses(service),
+								},
+							},
 						},
 					},
 				},
@@ -275,19 +286,51 @@ func createLoadBalancedService(service *models.ServiceSpecification, public bool
 	}
 }
 
+func getShardAddresses(service *models.ServiceSpecification) string {
+	name := *service.Name
+	// TODO: multi-port here?
+	port := int(*service.Ports[0].Number)
+	pieces := []string{}
+	for ix := 0; int32(ix) < service.ShardSpec.Shards; ix++ {
+		pieces = append(pieces, fmt.Sprintf("http://%s-%d.%s:%d", name, ix, name, port))
+	}
+	return strings.Join(pieces, ",")
+}
+
 func createStatefulService(service *models.ServiceSpecification, client *kubernetes.Clientset) {
 	name := *service.Name
 
-	svc := &v1.Service{
+	statefulSvc := &v1.Service{
 		ObjectMeta: meta.ObjectMeta{
 			Name: name,
+			Labels: map[string]string{
+				"app": name,
+			},
 		},
 		Spec: v1.ServiceSpec{
+			Ports:     getPorts(service),
+			ClusterIP: "None",
 			Selector: map[string]string{
 				"app": name,
 			},
-			Ports:     getPorts(service),
-			ClusterIP: "None",
+		},
+	}
+
+	if *dryrun {
+		output(statefulSvc)
+	} else if _, err := client.CoreV1().Services("default").Create(statefulSvc); err != nil {
+		log.Fatalf(err.Error())
+	}
+
+	svc := &v1.Service{
+		ObjectMeta: meta.ObjectMeta{
+			Name: makeSharderName(name),
+		},
+		Spec: v1.ServiceSpec{
+			Selector: map[string]string{
+				"app": makeSharderName(name),
+			},
+			Ports: getPorts(service),
 		},
 	}
 
@@ -324,6 +367,7 @@ func compile(service *models.Service, kubeconfig string) {
 		}
 		if service.Services[ix].ShardSpec != nil && service.Services[ix].ShardSpec.Shards > 0 {
 			deployStateful(service.Services[ix], clientset)
+			createStatefulService(service.Services[ix], clientset)
 		}
 	}
 }
