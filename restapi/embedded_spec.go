@@ -261,9 +261,23 @@ func init() {
           "type": "integer",
           "format": "int32"
         },
+        "shardSpec": {
+          "$ref": "#/definitions/shardSpecification"
+        }
+      }
+    },
+    "shardSpecification": {
+      "type": "object",
+      "properties": {
+        "fieldPath": {
+          "type": "string"
+        },
         "shards": {
           "type": "integer",
           "format": "int32"
+        },
+        "urlPattern": {
+          "type": "string"
         }
       }
     }

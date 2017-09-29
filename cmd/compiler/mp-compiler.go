@@ -30,6 +30,7 @@ var (
 	file   = flag.StringP("file", "f", "", "The config file to load")
 	name   = flag.StringP("name", "n", "", "The name of the service to compile")
 	dryrun = flag.Bool("dry-run", false, "If true, only output the execution plan, don't actually enact it.")
+	del    = flag.Bool("delete", false, "If true, instead of creating, delete the service.")
 )
 
 func output(obj interface{}) {
@@ -87,6 +88,23 @@ func main() {
 			}
 		}
 	}
+
+	// use the current context in kubeconfig
+	config, err := clientcmd.BuildConfigFromFlags("", *kubeconfig)
+	if err != nil {
+		panic(err.Error())
+	}
+
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		log.Fatalf(err.Error())
+	}
+
+	if *del {
+		for ix := range obj.Services {
+			deleteService(obj.Services[ix], clientset)
+		}
+	}
 	if len(*name) > 0 {
 		params := &services.GetServiceParams{Name: *name}
 		params = params.WithTimeout(5 * time.Second)
@@ -97,7 +115,7 @@ func main() {
 		obj = resp.Payload
 	}
 
-	compile(obj, *kubeconfig)
+	compile(obj, clientset)
 }
 
 func makeSharderName(name string) string {
@@ -113,6 +131,46 @@ func envvars(container *models.Container) []v1.EnvVar {
 		})
 	}
 	return envvars
+}
+
+func deleteService(service *models.ServiceSpecification, client *kubernetes.Clientset) error {
+	if service.ShardSpec != nil {
+		return deleteShardedService(service, client)
+	}
+	return deleteReplicatedService(service, client)
+}
+
+func deleteReplicatedService(service *models.ServiceSpecification, client *kubernetes.Clientset) error {
+	name := *service.Name
+	if *dryrun {
+		glog.Infof("Would have deleted deployment and service %s\n", name)
+		return nil
+	}
+	if err := client.ExtensionsV1beta1().Deployments("default").Delete(name, nil); err != nil {
+		return err
+	}
+	return client.CoreV1().Services("default").Delete(name, nil)
+}
+
+func deleteShardedService(service *models.ServiceSpecification, client *kubernetes.Clientset) error {
+	name := *service.Name
+	shardName := makeSharderName(name)
+
+	if *dryrun {
+		glog.Infof("Would have deleted deployment and service %s &%s\n", name, shardName)
+		return nil
+	}
+
+	if err := client.ExtensionsV1beta1().Deployments("default").Delete(shardName, nil); err != nil {
+		return err
+	}
+	if err := client.AppsV1beta1().StatefulSets("default").Delete(name, nil); err != nil {
+		return err
+	}
+	if err := client.CoreV1().Services("default").Delete(shardName, nil); err != nil {
+		return err
+	}
+	return client.CoreV1().Services("default").Delete(name, nil)
 }
 
 func containers(service *models.ServiceSpecification) []v1.Container {
@@ -344,18 +402,7 @@ func createStatefulService(service *models.ServiceSpecification, client *kuberne
 	}
 }
 
-func compile(service *models.Service, kubeconfig string) {
-	// use the current context in kubeconfig
-	config, err := clientcmd.BuildConfigFromFlags("", kubeconfig)
-	if err != nil {
-		panic(err.Error())
-	}
-
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		log.Fatalf(err.Error())
-	}
-
+func compile(service *models.Service, clientset *kubernetes.Clientset) {
 	for ix := range service.Services {
 		if service.Services[ix].Replicas > 0 && service.Services[ix].ShardSpec != nil {
 			log.Fatalf("%v: Replicas and shards are mutually exclusive.", service.Services[ix].Name)

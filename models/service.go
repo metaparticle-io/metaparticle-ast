@@ -6,6 +6,8 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
+	"strconv"
+
 	strfmt "github.com/go-openapi/strfmt"
 
 	"github.com/go-openapi/errors"
@@ -31,7 +33,7 @@ type Service struct {
 	Serve *ServeSpecification `json:"serve,omitempty"`
 
 	// services
-	Services ServiceServices `json:"services"`
+	Services []*ServiceSpecification `json:"services"`
 }
 
 /* polymorph service guid false */
@@ -57,6 +59,11 @@ func (m *Service) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateServe(formats); err != nil {
+		// prop
+		res = append(res, err)
+	}
+
+	if err := m.validateServices(formats); err != nil {
 		// prop
 		res = append(res, err)
 	}
@@ -103,6 +110,33 @@ func (m *Service) validateServe(formats strfmt.Registry) error {
 			}
 			return err
 		}
+	}
+
+	return nil
+}
+
+func (m *Service) validateServices(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Services) { // not required
+		return nil
+	}
+
+	for i := 0; i < len(m.Services); i++ {
+
+		if swag.IsZero(m.Services[i]) { // not required
+			continue
+		}
+
+		if m.Services[i] != nil {
+
+			if err := m.Services[i].Validate(formats); err != nil {
+				if ve, ok := err.(*errors.Validation); ok {
+					return ve.ValidateName("services" + "." + strconv.Itoa(i))
+				}
+				return err
+			}
+		}
+
 	}
 
 	return nil

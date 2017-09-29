@@ -184,6 +184,13 @@ func (o *AnApplicationForEasierDistributedApplicationGenerationAPI) Authenticato
 
 }
 
+// Authorizer returns the registered authorizer
+func (o *AnApplicationForEasierDistributedApplicationGenerationAPI) Authorizer() runtime.Authorizer {
+
+	return nil
+
+}
+
 // ConsumersFor gets the consumers for the specified media types
 func (o *AnApplicationForEasierDistributedApplicationGenerationAPI) ConsumersFor(mediaTypes []string) map[string]runtime.Consumer {
 
