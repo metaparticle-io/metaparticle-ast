@@ -1,0 +1,22 @@
+{
+    "name": "name",
+    "guid": 1234567, 
+    "services": [ 
+        {
+	        "name": "server",
+            "shardSpec": {
+                "shards": 4
+            },
+            "containers": [
+                { "image": "nginx" }
+            ],
+            "ports": [{
+                "number": 80
+            }]
+        }
+    ],
+    "serve": {
+        "name": "server",
+        "public": true
+    }
+}
