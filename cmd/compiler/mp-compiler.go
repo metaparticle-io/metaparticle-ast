@@ -106,7 +106,7 @@ func main() {
 		for ix := range obj.Services {
 			deleteService(obj.Services[ix], clientset)
 		}
-		return;
+		return
 	}
 	if len(*name) > 0 {
 		params := &services.GetServiceParams{Name: *name}
@@ -149,7 +149,7 @@ func deleteReplicatedService(service *models.ServiceSpecification, client *kuber
 		glog.Infof("Would have deleted deployment and service %s\n", name)
 		return nil
 	}
-	if err := client.ExtensionsV1beta1().Deployments("default").Delete(name, &meta.DeleteOptions{ PropagationPolicy: &foreground }); err != nil {
+	if err := client.ExtensionsV1beta1().Deployments("default").Delete(name, &meta.DeleteOptions{PropagationPolicy: &foreground}); err != nil {
 		return err
 	}
 	return client.CoreV1().Services("default").Delete(name, nil)
@@ -164,7 +164,7 @@ func deleteShardedService(service *models.ServiceSpecification, client *kubernet
 		return nil
 	}
 
-	deleteOptions := &meta.DeleteOptions{ PropagationPolicy: &foreground }
+	deleteOptions := &meta.DeleteOptions{PropagationPolicy: &foreground}
 
 	if err := client.ExtensionsV1beta1().Deployments("default").Delete(shardName, deleteOptions); err != nil {
 		return err
@@ -230,15 +230,13 @@ func deploy(service *models.ServiceSpecification, client *kubernetes.Clientset) 
 func deployStateful(service *models.ServiceSpecification, client *kubernetes.Clientset) {
 	name := *service.Name
 
-	var replicas int32
-	replicas = 2
 	deployment := &apps_v1beta1.StatefulSet{
 		ObjectMeta: meta.ObjectMeta{
 			Name: name,
 		},
 		Spec: apps_v1beta1.StatefulSetSpec{
 			ServiceName: name,
-			Replicas:    &replicas,
+			Replicas:    &service.ShardSpec.Shards,
 			Selector: &meta.LabelSelector{
 				MatchLabels: map[string]string{
 					"app": name,
@@ -251,18 +249,7 @@ func deployStateful(service *models.ServiceSpecification, client *kubernetes.Cli
 					},
 				},
 				Spec: v1.PodSpec{
-					Containers: []v1.Container{
-						{
-							Name:  name,
-							Image: "gcr.io/google_containers/nginx-slim:0.8",
-							Ports: []v1.ContainerPort{
-								{
-									ContainerPort: 80,
-									Name:          "web",
-								},
-							},
-						},
-					},
+					Containers: containers(service),
 				},
 			},
 		},
@@ -275,6 +262,9 @@ func deployStateful(service *models.ServiceSpecification, client *kubernetes.Cli
 			log.Fatalf(err.Error())
 		}
 	}
+
+	// TODO: handle more than one port here.
+	address := fmt.Sprintf("0.0.0.0:%d", *service.Ports[0].Number)
 
 	name = makeSharderName(name)
 	shardDeployment := &v1beta1.Deployment{
@@ -299,12 +289,7 @@ func deployStateful(service *models.ServiceSpecification, client *kubernetes.Cli
 						{
 							Name:  "sharder",
 							Image: "brendanburns/sharder",
-							Env: []v1.EnvVar{
-								{
-									Name:  "SHARD_ADDRESSES",
-									Value: getShardAddresses(service),
-								},
-							},
+							Env:   getShardEnvVars(service, address),
 						},
 					},
 				},
@@ -320,6 +305,26 @@ func deployStateful(service *models.ServiceSpecification, client *kubernetes.Cli
 	if _, err := client.ExtensionsV1beta1().Deployments("default").Create(shardDeployment); err != nil {
 		log.Fatalf(err.Error())
 	}
+}
+
+func getShardEnvVars(service *models.ServiceSpecification, address string) []v1.EnvVar {
+	result := []v1.EnvVar{
+		{
+			Name:  "SHARD_ADDRESSES",
+			Value: getShardAddresses(service),
+		},
+		{
+			Name:  "SERVER_ADDRESS",
+			Value: address,
+		},
+	}
+	if len(service.ShardSpec.URLPattern) > 0 {
+		result = append(result, v1.EnvVar{
+			Name:  "PATH_REGEXP",
+			Value: service.ShardSpec.URLPattern,
+		})
+	}
+	return result
 }
 
 func getPorts(service *models.ServiceSpecification) []v1.ServicePort {
@@ -369,7 +374,7 @@ func getShardAddresses(service *models.ServiceSpecification) string {
 	port := int(*service.Ports[0].Number)
 	pieces := []string{}
 	for ix := 0; int32(ix) < service.ShardSpec.Shards; ix++ {
-		pieces = append(pieces, fmt.Sprintf("http://%s-%d.%s:%d", name, ix, name, port))
+		pieces = append(pieces, fmt.Sprintf("%s-%d.%s:%d", name, ix, name, port))
 	}
 	return strings.Join(pieces, ",")
 }

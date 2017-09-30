@@ -3,12 +3,13 @@
     "guid": 1234567, 
     "services": [ 
         {
-	        "name": "server",
+	    "name": "server",
             "shardSpec": {
-                "shards": 4
+                "shards": 4,
+		"urlPattern": "user/(.*)/"
             },
             "containers": [
-                { "image": "nginx" }
+                { "image": "brendanburns/node-hostname" }
             ],
             "ports": [{
                 "number": 80
