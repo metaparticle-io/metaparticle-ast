@@ -31,6 +31,8 @@ var (
 	name   = flag.StringP("name", "n", "", "The name of the service to compile")
 	dryrun = flag.Bool("dry-run", false, "If true, only output the execution plan, don't actually enact it.")
 	del    = flag.Bool("delete", false, "If true, instead of creating, delete the service.")
+
+	foreground = meta.DeletePropagationForeground
 )
 
 func output(obj interface{}) {
@@ -104,6 +106,7 @@ func main() {
 		for ix := range obj.Services {
 			deleteService(obj.Services[ix], clientset)
 		}
+		return;
 	}
 	if len(*name) > 0 {
 		params := &services.GetServiceParams{Name: *name}
@@ -146,7 +149,7 @@ func deleteReplicatedService(service *models.ServiceSpecification, client *kuber
 		glog.Infof("Would have deleted deployment and service %s\n", name)
 		return nil
 	}
-	if err := client.ExtensionsV1beta1().Deployments("default").Delete(name, nil); err != nil {
+	if err := client.ExtensionsV1beta1().Deployments("default").Delete(name, &meta.DeleteOptions{ PropagationPolicy: &foreground }); err != nil {
 		return err
 	}
 	return client.CoreV1().Services("default").Delete(name, nil)
@@ -161,10 +164,12 @@ func deleteShardedService(service *models.ServiceSpecification, client *kubernet
 		return nil
 	}
 
-	if err := client.ExtensionsV1beta1().Deployments("default").Delete(shardName, nil); err != nil {
+	deleteOptions := &meta.DeleteOptions{ PropagationPolicy: &foreground }
+
+	if err := client.ExtensionsV1beta1().Deployments("default").Delete(shardName, deleteOptions); err != nil {
 		return err
 	}
-	if err := client.AppsV1beta1().StatefulSets("default").Delete(name, nil); err != nil {
+	if err := client.AppsV1beta1().StatefulSets("default").Delete(name, deleteOptions); err != nil {
 		return err
 	}
 	if err := client.CoreV1().Services("default").Delete(shardName, nil); err != nil {
@@ -225,12 +230,15 @@ func deploy(service *models.ServiceSpecification, client *kubernetes.Clientset) 
 func deployStateful(service *models.ServiceSpecification, client *kubernetes.Clientset) {
 	name := *service.Name
 
+	var replicas int32
+	replicas = 2
 	deployment := &apps_v1beta1.StatefulSet{
 		ObjectMeta: meta.ObjectMeta{
 			Name: name,
 		},
 		Spec: apps_v1beta1.StatefulSetSpec{
-			Replicas: &service.ShardSpec.Shards,
+			ServiceName: name,
+			Replicas:    &replicas,
 			Selector: &meta.LabelSelector{
 				MatchLabels: map[string]string{
 					"app": name,
@@ -243,7 +251,18 @@ func deployStateful(service *models.ServiceSpecification, client *kubernetes.Cli
 					},
 				},
 				Spec: v1.PodSpec{
-					Containers: containers(service),
+					Containers: []v1.Container{
+						{
+							Name:  name,
+							Image: "gcr.io/google_containers/nginx-slim:0.8",
+							Ports: []v1.ContainerPort{
+								{
+									ContainerPort: 80,
+									Name:          "web",
+								},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -277,11 +296,11 @@ func deployStateful(service *models.ServiceSpecification, client *kubernetes.Cli
 				},
 				Spec: v1.PodSpec{
 					Containers: []v1.Container{
-						v1.Container{
+						{
 							Name:  "sharder",
 							Image: "brendanburns/sharder",
 							Env: []v1.EnvVar{
-								v1.EnvVar{
+								{
 									Name:  "SHARD_ADDRESSES",
 									Value: getShardAddresses(service),
 								},
@@ -366,7 +385,12 @@ func createStatefulService(service *models.ServiceSpecification, client *kuberne
 			},
 		},
 		Spec: v1.ServiceSpec{
-			Ports:     getPorts(service),
+			Ports: []v1.ServicePort{
+				{
+					Port: 80,
+					Name: "web",
+				},
+			},
 			ClusterIP: "None",
 			Selector: map[string]string{
 				"app": name,
@@ -413,8 +437,8 @@ func compile(service *models.Service, clientset *kubernetes.Clientset) {
 			createLoadBalancedService(service.Services[ix], public, clientset)
 		}
 		if service.Services[ix].ShardSpec != nil && service.Services[ix].ShardSpec.Shards > 0 {
-			deployStateful(service.Services[ix], clientset)
 			createStatefulService(service.Services[ix], clientset)
+			deployStateful(service.Services[ix], clientset)
 		}
 	}
 }
