@@ -11,6 +11,15 @@ definitions:
         format: int64
       message:
         type: string
+  build:
+    type: object
+    properties:
+      name:
+        type: string
+      path:
+        type: string
+      imageName:
+        type: string
   shardSpecification:
     type: object
     properties:
