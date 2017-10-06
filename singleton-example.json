@@ -1,0 +1,26 @@
+{
+    "name": "name",
+    "guid": 1234567, 
+    "services": [ 
+        {
+            "name": "server",
+            "replicas": 1,
+            "containers": [
+                {
+                   "image": "nginx",
+                   "env": [{
+                     "name": "foo",
+                     "value": "bar"
+                   }]
+                }
+            ],
+            "ports": [{
+                "number": 80
+            }]
+        }
+    ],
+    "serve": {
+        "name": "server",
+        "public": true
+    }
+}
