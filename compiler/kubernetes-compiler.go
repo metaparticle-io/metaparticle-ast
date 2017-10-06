@@ -21,6 +21,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+const deleteOptions = &meta.DeleteOptions{PropagationPolicy: &foreground}
+
 type kubernetesCompiler struct {
 	clientset *kubernetes.Clientset
 }
@@ -85,7 +87,7 @@ func (k *kubernetesPlan) deleteReplicatedService(service *models.ServiceSpecific
 		glog.Infof("Would have deleted deployment and service %s\n", name)
 		return nil
 	}
-	if err := client.ExtensionsV1beta1().Deployments("default").Delete(name, nil); err != nil {
+	if err := client.ExtensionsV1beta1().Deployments("default").Delete(name, deleteOptions); err != nil {
 		return err
 	}
 	return client.CoreV1().Services("default").Delete(name, nil)
@@ -100,16 +102,16 @@ func (k *kubernetesPlan) deleteShardedService(service *models.ServiceSpecificati
 		return nil
 	}
 
-	if err := client.ExtensionsV1beta1().Deployments("default").Delete(shardName, nil); err != nil {
+	if err := client.ExtensionsV1beta1().Deployments("default").Delete(shardName, deleteOptions); err != nil {
 		return err
 	}
-	if err := client.AppsV1beta1().StatefulSets("default").Delete(name, nil); err != nil {
+	if err := client.AppsV1beta1().StatefulSets("default").Delete(name, deleteOptions); err != nil {
 		return err
 	}
-	if err := client.CoreV1().Services("default").Delete(shardName, nil); err != nil {
+	if err := client.CoreV1().Services("default").Delete(shardName, deleteOptions); err != nil {
 		return err
 	}
-	return client.CoreV1().Services("default").Delete(name, nil)
+	return client.CoreV1().Services("default").Delete(name, deleteOptions)
 }
 
 func containers(service *models.ServiceSpecification) []v1.Container {
