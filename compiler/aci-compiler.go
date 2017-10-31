@@ -12,10 +12,12 @@ import (
 type aciCompiler struct{}
 
 type aciPlan struct {
+	opts *CompilerOptions
 	service *models.Service
 }
 
 type aciDeletePlan struct {
+	opts *CompilerOptions
 	service *models.Service
 }
 
@@ -23,12 +25,12 @@ func NewAciCompiler() Compiler {
 	return &aciCompiler{}
 }
 
-func (a *aciCompiler) Compile(svc *models.Service) (Plan, error) {
-	return &aciPlan{svc}, nil
+func (a *aciCompiler) Compile(opts *CompilerOptions, svc *models.Service) (Plan, error) {
+	return &aciPlan{opts, svc}, nil
 }
 
-func (a *aciCompiler) Delete(svc *models.Service) (Plan, error) {
-	return &aciDeletePlan{svc}, nil
+func (a *aciCompiler) Delete(opts *CompilerOptions, svc *models.Service) (Plan, error) {
+	return &aciDeletePlan{opts, svc}, nil
 }
 
 func (a *aciPlan) Execute(dryrun bool) error {

@@ -10,10 +10,12 @@ import (
 type dockerCompiler struct{}
 
 type dockerPlan struct {
+	opts *CompilerOptions
 	service *models.Service
 }
 
 type dockerDeletePlan struct {
+	opts *CompilerOptions
 	service *models.Service
 }
 
@@ -21,12 +23,12 @@ func NewDockerCompiler() Compiler {
 	return &dockerCompiler{}
 }
 
-func (d *dockerCompiler) Compile(svc *models.Service) (Plan, error) {
-	return &dockerPlan{svc}, nil
+func (d *dockerCompiler) Compile(opts *CompilerOptions, svc *models.Service) (Plan, error) {
+	return &dockerPlan{opts, svc}, nil
 }
 
-func (d *dockerCompiler) Delete(svc *models.Service) (Plan, error) {
-	return &dockerDeletePlan{svc}, nil
+func (d *dockerCompiler) Delete(opts *CompilerOptions, svc *models.Service) (Plan, error) {
+	return &dockerDeletePlan{opts, svc}, nil
 }
 
 func (d *dockerPlan) Execute(dryrun bool) error {

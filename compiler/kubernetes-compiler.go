@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -21,9 +22,15 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-const deleteOptions = &meta.DeleteOptions{PropagationPolicy: &foreground}
+var (
+	foreground    = meta.DeletePropagationForeground
+	deleteOptions = &meta.DeleteOptions{
+		PropagationPolicy: &foreground,
+	}
+)
 
 type kubernetesCompiler struct {
+	opts      *CompilerOptions
 	clientset *kubernetes.Clientset
 }
 
@@ -153,8 +160,8 @@ func (k *kubernetesPlan) deploy(service *models.ServiceSpecification, client *ku
 		},
 	}
 
+	k.output(deployment, name+"-deploy")
 	if k.dryrun {
-		output(deployment)
 		return
 	}
 
@@ -191,9 +198,8 @@ func (k *kubernetesPlan) deployStateful(service *models.ServiceSpecification, cl
 		},
 	}
 
-	if k.dryrun {
-		output(deployment)
-	} else {
+	k.output(deployment, name+"-stateful-set")
+	if !k.dryrun {
 		if _, err := client.AppsV1beta1().StatefulSets("default").Create(deployment); err != nil {
 			log.Fatalf(err.Error())
 		}
@@ -235,8 +241,8 @@ func (k *kubernetesPlan) deployStateful(service *models.ServiceSpecification, cl
 		},
 	}
 
+	k.output(shardDeployment, name+"shard-router")
 	if k.dryrun {
-		output(shardDeployment)
 		return
 	}
 
@@ -276,8 +282,8 @@ func (k *kubernetesPlan) createLoadBalancedService(service *models.ServiceSpecif
 		svc.Spec.Type = "LoadBalancer"
 	}
 
+	k.output(svc, name+"-load-balancer")
 	if k.dryrun {
-		output(svc)
 		return
 	}
 
@@ -316,10 +322,11 @@ func (k *kubernetesPlan) createStatefulService(service *models.ServiceSpecificat
 		},
 	}
 
-	if k.dryrun {
-		output(statefulSvc)
-	} else if _, err := client.CoreV1().Services("default").Create(statefulSvc); err != nil {
-		log.Fatalf(err.Error())
+	k.output(statefulSvc, name+"-shards-service")
+	if !k.dryrun {
+		if _, err := client.CoreV1().Services("default").Create(statefulSvc); err != nil {
+			log.Fatalf(err.Error())
+		}
 	}
 
 	svc := &v1.Service{
@@ -334,8 +341,8 @@ func (k *kubernetesPlan) createStatefulService(service *models.ServiceSpecificat
 		},
 	}
 
+	k.output(svc, name+"-shard-router-service")
 	if k.dryrun {
-		output(svc)
 		return
 	}
 
@@ -344,11 +351,12 @@ func (k *kubernetesPlan) createStatefulService(service *models.ServiceSpecificat
 	}
 }
 
-func (k *kubernetesCompiler) Compile(obj *models.Service) (Plan, error) {
-	return &kubernetesPlan{service: obj, clientset: k.clientset}, nil
+func (k *kubernetesCompiler) Compile(opts *CompilerOptions, obj *models.Service) (Plan, error) {
+	return &kubernetesPlan{service: obj, clientset: k.clientset, opts: opts}, nil
 }
 
 type kubernetesPlan struct {
+	opts      *CompilerOptions
 	service   *models.Service
 	clientset *kubernetes.Clientset
 	dryrun    bool
@@ -387,16 +395,28 @@ func (k *kubernetesPlan) Execute(dryrun bool) error {
 	return nil
 }
 
-func (k *kubernetesCompiler) Delete(obj *models.Service) (Plan, error) {
-	return &kubernetesPlan{service: obj, clientset: k.clientset, delete: true}, nil
+func (k *kubernetesCompiler) Delete(opts *CompilerOptions, obj *models.Service) (Plan, error) {
+	return &kubernetesPlan{service: obj, clientset: k.clientset, delete: true, opts: opts}, nil
 }
 
-func output(obj interface{}) {
+func (k *kubernetesPlan) output(obj interface{}, name string) {
 	data, err := json.MarshalIndent(obj, "", "  ")
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
-	os.Stdout.Write(data)
+	var stream io.Writer
+	if k.opts != nil && len(k.opts.WorkingDirectory) > 0 {
+		file := name + ".json"
+		iofile, err := os.OpenFile(path.Join(k.opts.WorkingDirectory, file), os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0755)
+		if err != nil {
+			panic(err.Error())
+		}
+		stream = iofile
+		defer iofile.Close()
+	} else {
+		stream = os.Stdout
+	}
+	stream.Write(data)
 }
 
 func (k *kubernetesCompiler) Logs(svc *models.Service, stdout, stderr io.Writer) error {

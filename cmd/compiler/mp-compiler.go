@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path"
 	"time"
 
 	"github.com/golang/glog"
@@ -24,7 +25,6 @@ var (
 	name   = flag.StringP("name", "n", "", "The name of the service to compile")
 	dryrun = flag.Bool("dry-run", false, "If true, only output the execution plan, don't actually enact it.")
 	del    = flag.Bool("delete", false, "If true, instead of creating, delete the service.")
-	foreground = meta.DeletePropagationForeground
 	exec   = flag.String("executor", "kubernetes", "The executor to use. Default is 'kubernetes'")
 	attach = flag.Bool("attach", false, "If true, then attach to the service in question.")
 	deploy = flag.Bool("deploy", true, "If true, deploy or update the service")
@@ -91,20 +91,36 @@ func main() {
 		glog.Fatalf(err.Error())
 	}
 
+	var plan compiler.Plan
+	var opts *compiler.CompilerOptions
+	if !*dryrun {
+		wd, err := os.Getwd()
+		if err != nil {
+			panic(err.Error())
+		}
+		dir := path.Join(wd, ".metaparticle")
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			panic(err.Error())
+		}
+		opts = &compiler.CompilerOptions{
+			WorkingDirectory: dir,
+		}
+	}
 	if *deploy {
-		var plan compiler.Plan
 		if *del {
-			plan, err = cmp.Delete(obj)
+			plan, err = cmp.Delete(opts, obj)
 		} else {
-			plan, err = cmp.Compile(obj)
+			plan, err = cmp.Compile(opts, obj)
 		}
 	}
 
-        if err != nil {
-	       glog.Fatalf(err.Error())
-        }
-	if err := plan.Execute(*dryrun); err != nil {
+	if err != nil {
 		glog.Fatalf(err.Error())
+	}
+	if plan != nil {
+		if err := plan.Execute(*dryrun); err != nil {
+			glog.Fatalf(err.Error())
+		}
 	}
 	if *attach {
 		if err := cmp.Logs(obj, os.Stdout, os.Stderr); err != nil {
