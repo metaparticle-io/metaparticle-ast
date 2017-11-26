@@ -447,12 +447,9 @@ func (k *kubernetesCompiler) Logs(svc *models.Service, stdout, stderr io.Writer)
 		return err
 	}
 
-	/*
-		labelSelector := labels.Set{
-			"app": *svc.Name,
-		}.AsSelectorPreValidated()
-	*/
-	labelSelector := labels.Everything()
+	labelSelector := labels.Set{
+		"app": *svc.Name,
+	}.AsSelectorPreValidated()
 	containerPatterns := make([]*regexp.Regexp, 0)
 	quiet := false
 	var stdoutMutex sync.Mutex
