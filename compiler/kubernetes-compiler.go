@@ -4,19 +4,25 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"html/template"
 	"io"
 	"log"
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
+	"sync"
 
+	"github.com/fatih/color"
 	"github.com/golang/glog"
+	"github.com/metaparticle-io/metaparticle-ast/ktail"
 	"github.com/metaparticle-io/metaparticle-ast/models"
 	apps_v1beta1 "k8s.io/api/apps/v1beta1"
 	"k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
@@ -407,7 +413,7 @@ func (k *kubernetesPlan) output(obj interface{}, name string) {
 	var stream io.Writer
 	if k.opts != nil && len(k.opts.WorkingDirectory) > 0 {
 		file := name + ".json"
-		iofile, err := os.OpenFile(path.Join(k.opts.WorkingDirectory, file), os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0755)
+		iofile, err := os.OpenFile(path.Join(k.opts.WorkingDirectory, file), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0755)
 		if err != nil {
 			panic(err.Error())
 		}
@@ -420,6 +426,78 @@ func (k *kubernetesPlan) output(obj interface{}, name string) {
 }
 
 func (k *kubernetesCompiler) Logs(svc *models.Service, stdout, stderr io.Writer) error {
+	// TODO: choose namespace here?
+	namespace := v1.NamespaceDefault
+
+	yellow := color.New(color.FgYellow)
+	red := color.New(color.FgRed)
+
+	formatPod := func(pod *v1.Pod) string {
+		return pod.Name
+	}
+
+	formatPodAndContainer := func(pod *v1.Pod, container *v1.Container) string {
+		return fmt.Sprintf("%s:%s", formatPod(pod), container.Name)
+	}
+
+	tmplString := "{{.Pod.Name}}:{{.Container.Name}} {{.Message}}\n"
+
+	tmpl, err := template.New("line").Parse(tmplString)
+	if err != nil {
+		return err
+	}
+
+	/*
+		labelSelector := labels.Set{
+			"app": *svc.Name,
+		}.AsSelectorPreValidated()
+	*/
+	labelSelector := labels.Everything()
+	containerPatterns := make([]*regexp.Regexp, 0)
+	quiet := false
+	var stdoutMutex sync.Mutex
+	controller := ktail.NewController(k.clientset, namespace, labelSelector,
+		ktail.Callbacks{
+			OnEvent: func(event ktail.LogEvent) {
+				stdoutMutex.Lock()
+				defer stdoutMutex.Unlock()
+				tmpl.Execute(os.Stdout, event)
+			},
+			OnEnter: func(pod *v1.Pod, container *v1.Container) bool {
+				if len(containerPatterns) > 0 {
+					match := false
+					for _, r := range containerPatterns {
+						if r.MatchString(pod.Name) || r.MatchString(container.Name) {
+							match = true
+							break
+						}
+					}
+					if !match {
+						return false
+					}
+				}
+				if !quiet {
+					yellow.Fprintf(os.Stderr, "==> Detected container %s\n", formatPodAndContainer(pod, container))
+				}
+				return true
+			},
+			OnExit: func(pod *v1.Pod, container *v1.Container) {
+				if !quiet {
+					yellow.Fprintf(os.Stderr, "==> Leaving container %s\n", formatPodAndContainer(pod, container))
+				}
+			},
+			OnError: func(pod *v1.Pod, container *v1.Container, err error) {
+				red.Fprintf(os.Stderr, "==> Warning: Error while tailing container %s: %s\n",
+					formatPodAndContainer(pod, container), err)
+			},
+		})
+	controller.Run()
+	return nil
+}
+
+/*
+func (k *kubernetesCompiler) Logs(svc *models.Service, stdout, stderr io.Writer) error {
 	cmd := []string{"ktail", "-l", "app=" + *svc.Name, "--template", "\"{{.Message}}\\"}
 	return executeCommandStreaming(cmd, stdout, stderr)
 }
+*/
