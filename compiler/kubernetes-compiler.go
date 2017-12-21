@@ -103,6 +103,10 @@ func (k *kubernetesPlan) deleteReplicatedService(service *models.ServiceSpecific
 	if err := client.ExtensionsV1beta1().Deployments("default").Delete(name, deleteOptions); err != nil {
 		return err
 	}
+	if len(service.Ports) == 0 {
+		// no service created, so just return
+		return nil
+	}
 	return client.CoreV1().Services("default").Delete(name, nil)
 }
 
@@ -394,7 +398,10 @@ func (k *kubernetesPlan) Execute(dryrun bool) error {
 		public := *service.Serve.Name == *service.Services[ix].Name && service.Serve.Public
 		if service.Services[ix].Replicas > 0 {
 			k.deploy(service.Services[ix], k.clientset)
-			k.createLoadBalancedService(service.Services[ix], public, k.clientset)
+			public := *service.Serve.Name == *service.Services[ix].Name && service.Serve.Public
+			if len(service.Services[ix].Ports) > 0 {
+				k.createLoadBalancedService(service.Services[ix], public, k.clientset)
+			}
 		}
 		if service.Services[ix].ShardSpec != nil && service.Services[ix].ShardSpec.Shards > 0 {
 			k.deployStateful(service.Services[ix], k.clientset)
