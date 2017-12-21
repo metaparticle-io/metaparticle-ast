@@ -309,7 +309,7 @@ func getShardAddresses(service *models.ServiceSpecification) string {
 	return strings.Join(pieces, ",")
 }
 
-func (k *kubernetesPlan) createStatefulService(service *models.ServiceSpecification, client *kubernetes.Clientset) {
+func (k *kubernetesPlan) createStatefulService(service *models.ServiceSpecification, public bool, client *kubernetes.Clientset) {
 	name := *service.Name
 
 	statefulSvc := &v1.Service{
@@ -346,6 +346,9 @@ func (k *kubernetesPlan) createStatefulService(service *models.ServiceSpecificat
 			Ports: getPorts(service),
 		},
 	}
+	if public {
+		svc.Spec.Type = "LoadBalancer"
+	} 
 
 	k.output(svc, name+"-shard-router-service")
 	if k.dryrun {
@@ -388,14 +391,14 @@ func (k *kubernetesPlan) Execute(dryrun bool) error {
 		if service.Services[ix].Replicas > 0 && service.Services[ix].ShardSpec != nil {
 			return fmt.Errorf("%v: Replicas and shards are mutually exclusive", service.Services[ix].Name)
 		}
+		public := *service.Serve.Name == *service.Services[ix].Name && service.Serve.Public
 		if service.Services[ix].Replicas > 0 {
 			k.deploy(service.Services[ix], k.clientset)
-			public := *service.Serve.Name == *service.Services[ix].Name && service.Serve.Public
 			k.createLoadBalancedService(service.Services[ix], public, k.clientset)
 		}
 		if service.Services[ix].ShardSpec != nil && service.Services[ix].ShardSpec.Shards > 0 {
 			k.deployStateful(service.Services[ix], k.clientset)
-			k.createStatefulService(service.Services[ix], k.clientset)
+			k.createStatefulService(service.Services[ix], public, k.clientset)
 		}
 	}
 	return nil
