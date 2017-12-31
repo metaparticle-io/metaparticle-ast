@@ -47,7 +47,7 @@ func NewListServicesOK() *ListServicesOK {
 list the services
 */
 type ListServicesOK struct {
-	Payload []*models.Service
+	Payload models.ListServicesOKBody
 }
 
 func (o *ListServicesOK) Error() string {

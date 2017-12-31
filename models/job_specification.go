@@ -24,11 +24,11 @@ type JobSpecification struct {
 	// Required: true
 	Name *string `json:"name"`
 
-	// period
-	Period string `json:"period,omitempty"`
-
 	// replicas
 	Replicas int32 `json:"replicas,omitempty"`
+
+	// schedule
+	Schedule string `json:"schedule,omitempty"`
 }
 
 // Validate validates this job specification

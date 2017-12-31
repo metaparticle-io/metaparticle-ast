@@ -430,7 +430,7 @@ func (k *kubernetesPlan) Execute(dryrun bool) error {
 				return err
 			}
 		}
-		for ix := range l.service.Jobs {
+		for ix := range k.service.Jobs {
 			if err := k.deleteJob(k.service.Jobs[ix], k.clientset); err != nil {
 				return err
 			}

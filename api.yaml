@@ -34,7 +34,7 @@ definitions:
       replicas:
         type: integer
         format: int32
-      period:
+      schedule:
         type: string
   shardSpecification:
     type: object
