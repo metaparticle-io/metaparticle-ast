@@ -1,0 +1,13 @@
+{
+    "name": "job",
+    "guid": 1234567, 
+    "jobs": [
+        {
+            "name": "test",
+            "replicas": 3,
+            "containers": [
+               { "image": "busybox" }
+            ]
+        }
+    ]
+}

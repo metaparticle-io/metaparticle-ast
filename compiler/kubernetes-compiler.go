@@ -19,6 +19,7 @@ import (
 	"github.com/metaparticle-io/metaparticle-ast/ktail"
 	"github.com/metaparticle-io/metaparticle-ast/models"
 	apps_v1beta1 "k8s.io/api/apps/v1beta1"
+	batch "k8s.io/api/batch/v1"
 	"k8s.io/api/core/v1"
 	"k8s.io/api/extensions/v1beta1"
 	meta "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -136,6 +137,18 @@ func containers(service *models.ServiceSpecification) []v1.Container {
 	for ix, c := range service.Containers {
 		containers = append(containers, v1.Container{
 			Name:  fmt.Sprintf("%s-%d", *service.Name, ix),
+			Image: *c.Image,
+			Env:   envvars(c),
+		})
+	}
+	return containers
+}
+
+func containersForJob(job *models.JobSpecification) []v1.Container {
+	containers := []v1.Container{}
+	for ix, c := range job.Containers {
+		containers = append(containers, v1.Container{
+			Name:  fmt.Sprintf("%s-%d", *job.Name, ix),
 			Image: *c.Image,
 			Env:   envvars(c),
 		})
@@ -352,7 +365,7 @@ func (k *kubernetesPlan) createStatefulService(service *models.ServiceSpecificat
 	}
 	if public {
 		svc.Spec.Type = "LoadBalancer"
-	} 
+	}
 
 	k.output(svc, name+"-shard-router-service")
 	if k.dryrun {
@@ -366,6 +379,30 @@ func (k *kubernetesPlan) createStatefulService(service *models.ServiceSpecificat
 
 func (k *kubernetesCompiler) Compile(opts *CompilerOptions, obj *models.Service) (Plan, error) {
 	return &kubernetesPlan{service: obj, clientset: k.clientset, opts: opts}, nil
+}
+
+func (k *kubernetesPlan) createJob(obj *models.JobSpecification) error {
+	name := *obj.Name
+	job := &batch.Job{
+		ObjectMeta: meta.ObjectMeta{
+			Name: name,
+		},
+		Spec: batch.JobSpec{
+			Completions: &obj.Replicas,
+			Template: v1.PodTemplateSpec{
+				ObjectMeta: meta.ObjectMeta{
+					Labels: map[string]string{
+						"app": name,
+					},
+				},
+				Spec: v1.PodSpec{
+					Containers: containersForJob(obj),
+				},
+			},
+		},
+	}
+	_, err := k.clientset.BatchV1().Jobs("default").Create(job)
+	return err
 }
 
 type kubernetesPlan struct {
@@ -406,6 +443,11 @@ func (k *kubernetesPlan) Execute(dryrun bool) error {
 		if service.Services[ix].ShardSpec != nil && service.Services[ix].ShardSpec.Shards > 0 {
 			k.deployStateful(service.Services[ix], k.clientset)
 			k.createStatefulService(service.Services[ix], public, k.clientset)
+		}
+	}
+	for ix := range service.Jobs {
+		if err := k.createJob(service.Jobs[ix]); err != nil {
+			return err
 		}
 	}
 	return nil

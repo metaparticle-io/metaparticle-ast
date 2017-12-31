@@ -6,8 +6,6 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"strconv"
-
 	strfmt "github.com/go-openapi/strfmt"
 
 	"github.com/go-openapi/errors"
@@ -17,11 +15,10 @@ import (
 
 // ServiceSpecification service specification
 // swagger:model serviceSpecification
-
 type ServiceSpecification struct {
 
 	// containers
-	Containers []*Container `json:"containers"`
+	Containers ServiceSpecificationContainers `json:"containers"`
 
 	// depends
 	Depends string `json:"depends,omitempty"`
@@ -31,7 +28,7 @@ type ServiceSpecification struct {
 	Name *string `json:"name"`
 
 	// ports
-	Ports []*ServicePort `json:"ports"`
+	Ports ServiceSpecificationPorts `json:"ports"`
 
 	// reference
 	Reference string `json:"reference,omitempty"`
@@ -43,35 +40,11 @@ type ServiceSpecification struct {
 	ShardSpec *ShardSpecification `json:"shardSpec,omitempty"`
 }
 
-/* polymorph serviceSpecification containers false */
-
-/* polymorph serviceSpecification depends false */
-
-/* polymorph serviceSpecification name false */
-
-/* polymorph serviceSpecification ports false */
-
-/* polymorph serviceSpecification reference false */
-
-/* polymorph serviceSpecification replicas false */
-
-/* polymorph serviceSpecification shardSpec false */
-
 // Validate validates this service specification
 func (m *ServiceSpecification) Validate(formats strfmt.Registry) error {
 	var res []error
 
-	if err := m.validateContainers(formats); err != nil {
-		// prop
-		res = append(res, err)
-	}
-
 	if err := m.validateName(formats); err != nil {
-		// prop
-		res = append(res, err)
-	}
-
-	if err := m.validatePorts(formats); err != nil {
 		// prop
 		res = append(res, err)
 	}
@@ -87,64 +60,10 @@ func (m *ServiceSpecification) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *ServiceSpecification) validateContainers(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Containers) { // not required
-		return nil
-	}
-
-	for i := 0; i < len(m.Containers); i++ {
-
-		if swag.IsZero(m.Containers[i]) { // not required
-			continue
-		}
-
-		if m.Containers[i] != nil {
-
-			if err := m.Containers[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName("containers" + "." + strconv.Itoa(i))
-				}
-				return err
-			}
-		}
-
-	}
-
-	return nil
-}
-
 func (m *ServiceSpecification) validateName(formats strfmt.Registry) error {
 
 	if err := validate.Required("name", "body", m.Name); err != nil {
 		return err
-	}
-
-	return nil
-}
-
-func (m *ServiceSpecification) validatePorts(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Ports) { // not required
-		return nil
-	}
-
-	for i := 0; i < len(m.Ports); i++ {
-
-		if swag.IsZero(m.Ports[i]) { // not required
-			continue
-		}
-
-		if m.Ports[i] != nil {
-
-			if err := m.Ports[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName("ports" + "." + strconv.Itoa(i))
-				}
-				return err
-			}
-		}
-
 	}
 
 	return nil

@@ -12,22 +12,22 @@ import (
 	"github.com/go-openapi/swag"
 )
 
-// ShardSpecification shard specification
-// swagger:model shardSpecification
-type ShardSpecification struct {
+// Build build
+// swagger:model build
+type Build struct {
 
-	// field path
-	FieldPath string `json:"fieldPath,omitempty"`
+	// image name
+	ImageName string `json:"imageName,omitempty"`
 
-	// shards
-	Shards int32 `json:"shards,omitempty"`
+	// name
+	Name string `json:"name,omitempty"`
 
-	// url pattern
-	URLPattern string `json:"urlPattern,omitempty"`
+	// path
+	Path string `json:"path,omitempty"`
 }
 
-// Validate validates this shard specification
-func (m *ShardSpecification) Validate(formats strfmt.Registry) error {
+// Validate validates this build
+func (m *Build) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if len(res) > 0 {
@@ -37,7 +37,7 @@ func (m *ShardSpecification) Validate(formats strfmt.Registry) error {
 }
 
 // MarshalBinary interface implementation
-func (m *ShardSpecification) MarshalBinary() ([]byte, error) {
+func (m *Build) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -45,8 +45,8 @@ func (m *ShardSpecification) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *ShardSpecification) UnmarshalBinary(b []byte) error {
-	var res ShardSpecification
+func (m *Build) UnmarshalBinary(b []byte) error {
+	var res Build
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

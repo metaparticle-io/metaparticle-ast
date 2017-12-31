@@ -20,6 +20,22 @@ definitions:
         type: string
       imageName:
         type: string
+  jobSpecification:
+    type: object
+    required:
+    - name
+    properties:
+      name:
+        type: string
+      containers:
+        type: array
+        items:
+          $ref: '#/definitions/container'
+      replicas:
+        type: integer
+        format: int32
+      period:
+        type: string
   shardSpecification:
     type: object
     properties:
@@ -112,10 +128,13 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/serviceSpecification'
+      jobs:
+        type: array
+        items:
+          $ref: '#/definitions/jobSpecification'
       serve:
         type: object
         $ref: '#/definitions/serveSpecification'
-        
 info:
   description: The metaparticle API
   title: An application for easier distributed application generation
