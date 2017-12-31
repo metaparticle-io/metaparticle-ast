@@ -396,7 +396,8 @@ func (k *kubernetesPlan) createJob(obj *models.JobSpecification) error {
 					},
 				},
 				Spec: v1.PodSpec{
-					Containers: containersForJob(obj),
+					Containers:    containersForJob(obj),
+					RestartPolicy: "OnFailure",
 				},
 			},
 		},
