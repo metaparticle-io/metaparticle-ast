@@ -95,6 +95,10 @@ func (k *kubernetesPlan) deleteService(service *models.ServiceSpecification, cli
 	return k.deleteReplicatedService(service, client)
 }
 
+func (k *kubernetesPlan) deleteJob(job *models.JobSpecification, client *kubernetes.Clientset) error {
+	return client.BatchV1().Jobs("default").Delete(*job.Name, &meta.DeleteOptions{})
+}
+
 func (k *kubernetesPlan) deleteReplicatedService(service *models.ServiceSpecification, client *kubernetes.Clientset) error {
 	name := *service.Name
 	if k.dryrun {
@@ -423,6 +427,11 @@ func (k *kubernetesPlan) Execute(dryrun bool) error {
 	if k.delete {
 		for ix := range k.service.Services {
 			if err := k.deleteService(k.service.Services[ix], k.clientset); err != nil {
+				return err
+			}
+		}
+		for ix := range l.service.Jobs {
+			if err := k.deleteJob(k.service.Jobs[ix], k.clientset); err != nil {
 				return err
 			}
 		}
