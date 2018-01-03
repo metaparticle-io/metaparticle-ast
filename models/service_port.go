@@ -15,7 +15,6 @@ import (
 
 // ServicePort service port
 // swagger:model servicePort
-
 type ServicePort struct {
 
 	// number
@@ -25,10 +24,6 @@ type ServicePort struct {
 	// protocol
 	Protocol string `json:"protocol,omitempty"`
 }
-
-/* polymorph servicePort number false */
-
-/* polymorph servicePort protocol false */
 
 // Validate validates this service port
 func (m *ServicePort) Validate(formats strfmt.Registry) error {

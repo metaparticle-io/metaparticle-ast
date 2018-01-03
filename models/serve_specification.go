@@ -15,7 +15,6 @@ import (
 
 // ServeSpecification serve specification
 // swagger:model serveSpecification
-
 type ServeSpecification struct {
 
 	// name
@@ -25,10 +24,6 @@ type ServeSpecification struct {
 	// public
 	Public bool `json:"public,omitempty"`
 }
-
-/* polymorph serveSpecification name false */
-
-/* polymorph serveSpecification public false */
 
 // Validate validates this serve specification
 func (m *ServeSpecification) Validate(formats strfmt.Registry) error {

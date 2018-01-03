@@ -127,6 +127,20 @@ func init() {
     }
   },
   "definitions": {
+    "build": {
+      "type": "object",
+      "properties": {
+        "imageName": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        }
+      }
+    },
     "container": {
       "type": "object",
       "required": [
@@ -174,6 +188,30 @@ func init() {
         }
       }
     },
+    "jobSpecification": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "containers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/container"
+          }
+        },
+        "name": {
+          "type": "string"
+        },
+        "replicas": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "schedule": {
+          "type": "string"
+        }
+      }
+    },
     "serveSpecification": {
       "type": "object",
       "required": [
@@ -198,6 +236,12 @@ func init() {
         "guid": {
           "type": "integer",
           "format": "int64"
+        },
+        "jobs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/jobSpecification"
+          }
         },
         "name": {
           "type": "string",

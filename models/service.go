@@ -6,8 +6,6 @@ package models
 // Editing this file might prove futile when you re-run the swagger generate command
 
 import (
-	"strconv"
-
 	strfmt "github.com/go-openapi/strfmt"
 
 	"github.com/go-openapi/errors"
@@ -17,12 +15,14 @@ import (
 
 // Service service
 // swagger:model service
-
 type Service struct {
 
 	// guid
 	// Required: true
 	GUID *int64 `json:"guid"`
+
+	// jobs
+	Jobs ServiceJobs `json:"jobs"`
 
 	// name
 	// Required: true
@@ -33,16 +33,8 @@ type Service struct {
 	Serve *ServeSpecification `json:"serve,omitempty"`
 
 	// services
-	Services []*ServiceSpecification `json:"services"`
+	Services ServiceServices `json:"services"`
 }
-
-/* polymorph service guid false */
-
-/* polymorph service name false */
-
-/* polymorph service serve false */
-
-/* polymorph service services false */
 
 // Validate validates this service
 func (m *Service) Validate(formats strfmt.Registry) error {
@@ -59,11 +51,6 @@ func (m *Service) Validate(formats strfmt.Registry) error {
 	}
 
 	if err := m.validateServe(formats); err != nil {
-		// prop
-		res = append(res, err)
-	}
-
-	if err := m.validateServices(formats); err != nil {
 		// prop
 		res = append(res, err)
 	}
@@ -110,33 +97,6 @@ func (m *Service) validateServe(formats strfmt.Registry) error {
 			}
 			return err
 		}
-	}
-
-	return nil
-}
-
-func (m *Service) validateServices(formats strfmt.Registry) error {
-
-	if swag.IsZero(m.Services) { // not required
-		return nil
-	}
-
-	for i := 0; i < len(m.Services); i++ {
-
-		if swag.IsZero(m.Services[i]) { // not required
-			continue
-		}
-
-		if m.Services[i] != nil {
-
-			if err := m.Services[i].Validate(formats); err != nil {
-				if ve, ok := err.(*errors.Validation); ok {
-					return ve.ValidateName("services" + "." + strconv.Itoa(i))
-				}
-				return err
-			}
-		}
-
 	}
 
 	return nil

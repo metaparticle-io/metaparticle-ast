@@ -13,29 +13,29 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// EnvVar env var
-// swagger:model envVar
-type EnvVar struct {
+// JobSpecification job specification
+// swagger:model jobSpecification
+type JobSpecification struct {
+
+	// containers
+	Containers JobSpecificationContainers `json:"containers"`
 
 	// name
 	// Required: true
 	Name *string `json:"name"`
 
-	// value
-	// Required: true
-	Value *string `json:"value"`
+	// replicas
+	Replicas int32 `json:"replicas,omitempty"`
+
+	// schedule
+	Schedule string `json:"schedule,omitempty"`
 }
 
-// Validate validates this env var
-func (m *EnvVar) Validate(formats strfmt.Registry) error {
+// Validate validates this job specification
+func (m *JobSpecification) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateName(formats); err != nil {
-		// prop
-		res = append(res, err)
-	}
-
-	if err := m.validateValue(formats); err != nil {
 		// prop
 		res = append(res, err)
 	}
@@ -46,7 +46,7 @@ func (m *EnvVar) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *EnvVar) validateName(formats strfmt.Registry) error {
+func (m *JobSpecification) validateName(formats strfmt.Registry) error {
 
 	if err := validate.Required("name", "body", m.Name); err != nil {
 		return err
@@ -55,17 +55,8 @@ func (m *EnvVar) validateName(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *EnvVar) validateValue(formats strfmt.Registry) error {
-
-	if err := validate.Required("value", "body", m.Value); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // MarshalBinary interface implementation
-func (m *EnvVar) MarshalBinary() ([]byte, error) {
+func (m *JobSpecification) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -73,8 +64,8 @@ func (m *EnvVar) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *EnvVar) UnmarshalBinary(b []byte) error {
-	var res EnvVar
+func (m *JobSpecification) UnmarshalBinary(b []byte) error {
+	var res JobSpecification
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

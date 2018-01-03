@@ -31,7 +31,7 @@ func NewCreateOrUpdateServiceParams() CreateOrUpdateServiceParams {
 type CreateOrUpdateServiceParams struct {
 
 	// HTTP Request Object
-	HTTPRequest *http.Request
+	HTTPRequest *http.Request `json:"-"`
 
 	/*
 	  In: body
