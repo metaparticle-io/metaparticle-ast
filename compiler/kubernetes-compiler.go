@@ -329,7 +329,7 @@ func getShardAddresses(service *models.ServiceSpecification) string {
 	port := int(*service.Ports[0].Number)
 	pieces := []string{}
 	for ix := 0; int32(ix) < service.ShardSpec.Shards; ix++ {
-		pieces = append(pieces, fmt.Sprintf("http://%s-%d.%s:%d", name, ix, name, port))
+		pieces = append(pieces, fmt.Sprintf("%s-%d.%s:%d", name, ix, name, port))
 	}
 	return strings.Join(pieces, ",")
 }
