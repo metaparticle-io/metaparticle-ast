@@ -264,6 +264,10 @@ func (k *kubernetesPlan) deployStateful(service *models.ServiceSpecification, cl
 									Name:  "SERVER_ADDRESS",
 									Value: "0.0.0.0:8080",
 								},
+								v1.EnvVar{
+									Name:  "PATH_REGEXP",
+									Value: getShardExpression(service),
+								},
 							},
 						},
 					},
@@ -323,13 +327,20 @@ func (k *kubernetesPlan) createLoadBalancedService(service *models.ServiceSpecif
 	}
 }
 
+func getShardExpression(service *models.ServiceSpecification) string {
+	if len(service.ShardSpec.URLPattern) > 0 {
+		return service.ShardSpec.URLPattern
+	}
+	return "(.*)"
+}
+
 func getShardAddresses(service *models.ServiceSpecification) string {
 	name := *service.Name
 	// TODO: multi-port here?
 	port := int(*service.Ports[0].Number)
 	pieces := []string{}
 	for ix := 0; int32(ix) < service.ShardSpec.Shards; ix++ {
-		pieces = append(pieces, fmt.Sprintf("http://%s-%d.%s:%d", name, ix, name, port))
+		pieces = append(pieces, fmt.Sprintf("%s-%d.%s:%d", name, ix, name, port))
 	}
 	return strings.Join(pieces, ",")
 }
