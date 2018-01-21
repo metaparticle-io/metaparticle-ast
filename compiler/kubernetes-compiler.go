@@ -260,6 +260,10 @@ func (k *kubernetesPlan) deployStateful(service *models.ServiceSpecification, cl
 									Name:  "SHARD_ADDRESSES",
 									Value: getShardAddresses(service),
 								},
+								v1.EnvVar{
+									Name:  "SERVER_ADDRESS",
+									Value: "0.0.0.0:8080",
+								},
 							},
 						},
 					},
