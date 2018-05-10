@@ -17,6 +17,9 @@ import (
 // swagger:model container
 type Container struct {
 
+	// command
+	Command []string `json:"command"`
+
 	// env
 	Env ContainerEnv `json:"env"`
 
@@ -32,6 +35,11 @@ type Container struct {
 func (m *Container) Validate(formats strfmt.Registry) error {
 	var res []error
 
+	if err := m.validateCommand(formats); err != nil {
+		// prop
+		res = append(res, err)
+	}
+
 	if err := m.validateImage(formats); err != nil {
 		// prop
 		res = append(res, err)
@@ -40,6 +48,15 @@ func (m *Container) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *Container) validateCommand(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Command) { // not required
+		return nil
+	}
+
 	return nil
 }
 

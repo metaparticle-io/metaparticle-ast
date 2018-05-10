@@ -154,6 +154,7 @@ func containers(service *models.ServiceSpecification) []v1.Container {
 		containers = append(containers, v1.Container{
 			Name:         fmt.Sprintf("%s-%d", *service.Name, ix),
 			Image:        *c.Image,
+			Command:      c.Command,
 			Env:          envvars(c),
 			VolumeMounts: volumeMounts(c),
 		})
@@ -167,6 +168,7 @@ func containersForJob(job *models.JobSpecification) []v1.Container {
 		containers = append(containers, v1.Container{
 			Name:         fmt.Sprintf("%s-%d", *job.Name, ix),
 			Image:        *c.Image,
+			Command:      c.Command,
 			Env:          envvars(c),
 			VolumeMounts: volumeMounts(c),
 		})

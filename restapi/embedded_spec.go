@@ -147,6 +147,12 @@ func init() {
         "image"
       ],
       "properties": {
+        "command": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
         "env": {
           "type": "array",
           "items": {
