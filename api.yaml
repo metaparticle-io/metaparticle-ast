@@ -31,6 +31,10 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/container'
+      volumes:
+        type: array
+        items:
+          $ref: '#/definitions/volume'
       replicas:
         type: integer
         format: int32
@@ -67,6 +71,28 @@ definitions:
         type: string
       value:
         type: string
+  volume:
+    type: object
+    required:
+      - name
+      - persistentVolumeClaim
+    properties:
+      name:
+        type: string
+      persistentVolumeClaim:
+        type: string
+  volumeMount:
+    type: object
+    required:
+      - name
+      - mountPath
+    properties:
+      name:
+        type: string
+      mountPath:
+        type: string
+      subPath:
+        type: string
   container:
     type: object
     required:
@@ -78,6 +104,10 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/envVar'
+      volumeMounts:
+        type: array
+        items:
+          $ref: '#/definitions/volumeMount'
   servicePort:
     type: object
     required:
@@ -104,6 +134,10 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/container'
+      volumes:
+        type: array
+        items:
+          $ref: '#/definitions/volume'
       ports:
         type: array
         items:

@@ -77,6 +77,18 @@ func makeSharderName(name string) string {
 	return fmt.Sprintf("%s-sharder", name)
 }
 
+func volumeMounts(container *models.Container) []v1.VolumeMount {
+	vms := []v1.VolumeMount{}
+	for _, vm := range container.VolumeMounts {
+		vms = append(vms, v1.VolumeMount{
+			Name: *vm.Name,
+			MountPath: *vm.MountPath,
+			SubPath: *vm.SubPath
+		})
+	}
+	return vms
+}
+
 func envvars(container *models.Container) []v1.EnvVar {
 	envvars := []v1.EnvVar{}
 	for _, env := range container.Env {
@@ -143,6 +155,7 @@ func containers(service *models.ServiceSpecification) []v1.Container {
 			Name:  fmt.Sprintf("%s-%d", *service.Name, ix),
 			Image: *c.Image,
 			Env:   envvars(c),
+			VolumeMounts: volumeMounts(c)
 		})
 	}
 	return containers
@@ -155,9 +168,21 @@ func containersForJob(job *models.JobSpecification) []v1.Container {
 			Name:  fmt.Sprintf("%s-%d", *job.Name, ix),
 			Image: *c.Image,
 			Env:   envvars(c),
+			VolumeMounts: volumeMounts(c)
 		})
 	}
 	return containers
+}
+
+func volumes(volumes []*models.Volumes) {
+	vs := []v1.Volume{}
+	for _, v := range volumes {
+		vs = append(vs, v1.Volume{
+			Name: *v.Name,
+			PersistentVolumeClaim: *v.PersistentVolumeClaim
+		})
+	}
+	return vs
 }
 
 func (k *kubernetesPlan) deploy(service *models.ServiceSpecification, client *kubernetes.Clientset) {
@@ -182,6 +207,7 @@ func (k *kubernetesPlan) deploy(service *models.ServiceSpecification, client *ku
 				},
 				Spec: v1.PodSpec{
 					Containers: containers(service),
+					Volumes: volumes(service.ServiceSpecificationVolumes)
 				},
 			},
 		},
@@ -405,6 +431,7 @@ func (k *kubernetesPlan) createJob(obj *models.JobSpecification) error {
 				},
 				Spec: v1.PodSpec{
 					Containers:    containersForJob(obj),
+					Volumes: volumes(obj.JobSpecificationVolumes)
 					RestartPolicy: "OnFailure",
 				},
 			},

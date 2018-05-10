@@ -13,30 +13,30 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// JobSpecification job specification
-// swagger:model jobSpecification
-type JobSpecification struct {
+// VolumeMount volume mount
+// swagger:model volumeMount
+type VolumeMount struct {
 
-	// containers
-	Containers JobSpecificationContainers `json:"containers"`
+	// mount path
+	// Required: true
+	MountPath *string `json:"mountPath"`
 
 	// name
 	// Required: true
 	Name *string `json:"name"`
 
-	// replicas
-	Replicas int32 `json:"replicas,omitempty"`
-
-	// schedule
-	Schedule string `json:"schedule,omitempty"`
-
-	// volumes
-	Volumes JobSpecificationVolumes `json:"volumes"`
+	// sub path
+	SubPath string `json:"subPath,omitempty"`
 }
 
-// Validate validates this job specification
-func (m *JobSpecification) Validate(formats strfmt.Registry) error {
+// Validate validates this volume mount
+func (m *VolumeMount) Validate(formats strfmt.Registry) error {
 	var res []error
+
+	if err := m.validateMountPath(formats); err != nil {
+		// prop
+		res = append(res, err)
+	}
 
 	if err := m.validateName(formats); err != nil {
 		// prop
@@ -49,7 +49,16 @@ func (m *JobSpecification) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *JobSpecification) validateName(formats strfmt.Registry) error {
+func (m *VolumeMount) validateMountPath(formats strfmt.Registry) error {
+
+	if err := validate.Required("mountPath", "body", m.MountPath); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *VolumeMount) validateName(formats strfmt.Registry) error {
 
 	if err := validate.Required("name", "body", m.Name); err != nil {
 		return err
@@ -59,7 +68,7 @@ func (m *JobSpecification) validateName(formats strfmt.Registry) error {
 }
 
 // MarshalBinary interface implementation
-func (m *JobSpecification) MarshalBinary() ([]byte, error) {
+func (m *VolumeMount) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -67,8 +76,8 @@ func (m *JobSpecification) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *JobSpecification) UnmarshalBinary(b []byte) error {
-	var res JobSpecification
+func (m *VolumeMount) UnmarshalBinary(b []byte) error {
+	var res VolumeMount
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

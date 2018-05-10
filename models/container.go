@@ -23,6 +23,9 @@ type Container struct {
 	// image
 	// Required: true
 	Image *string `json:"image"`
+
+	// volume mounts
+	VolumeMounts ContainerVolumeMounts `json:"volumeMounts"`
 }
 
 // Validate validates this container

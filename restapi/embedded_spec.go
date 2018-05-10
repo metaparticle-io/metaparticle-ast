@@ -155,6 +155,12 @@ func init() {
         },
         "image": {
           "type": "string"
+        },
+        "volumeMounts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/volumeMount"
+          }
         }
       }
     },
@@ -209,6 +215,12 @@ func init() {
         },
         "schedule": {
           "type": "string"
+        },
+        "volumes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/volume"
+          }
         }
       }
     },
@@ -307,6 +319,12 @@ func init() {
         },
         "shardSpec": {
           "$ref": "#/definitions/shardSpecification"
+        },
+        "volumes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/volume"
+          }
         }
       }
     },
@@ -321,6 +339,39 @@ func init() {
           "format": "int32"
         },
         "urlPattern": {
+          "type": "string"
+        }
+      }
+    },
+    "volume": {
+      "type": "object",
+      "required": [
+        "name",
+        "persistentVolumeClaim"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "persistentVolumeClaim": {
+          "type": "string"
+        }
+      }
+    },
+    "volumeMount": {
+      "type": "object",
+      "required": [
+        "name",
+        "mountPath"
+      ],
+      "properties": {
+        "mountPath": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "subPath": {
           "type": "string"
         }
       }
