@@ -206,6 +206,10 @@ func init() {
         "name"
       ],
       "properties": {
+        "completion": {
+          "type": "integer",
+          "format": "int32"
+        },
         "containers": {
           "type": "array",
           "items": {
@@ -215,7 +219,7 @@ func init() {
         "name": {
           "type": "string"
         },
-        "replicas": {
+        "parallelism": {
           "type": "integer",
           "format": "int32"
         },

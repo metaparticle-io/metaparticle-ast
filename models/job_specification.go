@@ -17,6 +17,9 @@ import (
 // swagger:model jobSpecification
 type JobSpecification struct {
 
+	// completion
+	Completion int32 `json:"completion,omitempty"`
+
 	// containers
 	Containers JobSpecificationContainers `json:"containers"`
 
@@ -24,8 +27,8 @@ type JobSpecification struct {
 	// Required: true
 	Name *string `json:"name"`
 
-	// replicas
-	Replicas int32 `json:"replicas,omitempty"`
+	// parallelism
+	Parallelism int32 `json:"parallelism,omitempty"`
 
 	// schedule
 	Schedule string `json:"schedule,omitempty"`

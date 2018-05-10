@@ -428,7 +428,8 @@ func (k *kubernetesPlan) createJob(obj *models.JobSpecification) error {
 			Name: name,
 		},
 		Spec: batch.JobSpec{
-			Completions: &obj.Replicas,
+			Completions: &obj.Completion,
+			Parallelism: &obj.Parallelism,
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: meta.ObjectMeta{
 					Labels: map[string]string{

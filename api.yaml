@@ -35,7 +35,10 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/volume'
-      replicas:
+      parallelism:
+        type: integer
+        format: int32
+      completion:
         type: integer
         format: int32
       schedule:
