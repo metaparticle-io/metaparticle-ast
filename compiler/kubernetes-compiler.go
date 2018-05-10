@@ -81,9 +81,9 @@ func volumeMounts(container *models.Container) []v1.VolumeMount {
 	vms := []v1.VolumeMount{}
 	for _, vm := range container.VolumeMounts {
 		vms = append(vms, v1.VolumeMount{
-			Name: *vm.Name,
+			Name:      *vm.Name,
 			MountPath: *vm.MountPath,
-			SubPath: *vm.SubPath
+			SubPath:   vm.SubPath,
 		})
 	}
 	return vms
@@ -152,10 +152,10 @@ func containers(service *models.ServiceSpecification) []v1.Container {
 	containers := []v1.Container{}
 	for ix, c := range service.Containers {
 		containers = append(containers, v1.Container{
-			Name:  fmt.Sprintf("%s-%d", *service.Name, ix),
-			Image: *c.Image,
-			Env:   envvars(c),
-			VolumeMounts: volumeMounts(c)
+			Name:         fmt.Sprintf("%s-%d", *service.Name, ix),
+			Image:        *c.Image,
+			Env:          envvars(c),
+			VolumeMounts: volumeMounts(c),
 		})
 	}
 	return containers
@@ -165,21 +165,25 @@ func containersForJob(job *models.JobSpecification) []v1.Container {
 	containers := []v1.Container{}
 	for ix, c := range job.Containers {
 		containers = append(containers, v1.Container{
-			Name:  fmt.Sprintf("%s-%d", *job.Name, ix),
-			Image: *c.Image,
-			Env:   envvars(c),
-			VolumeMounts: volumeMounts(c)
+			Name:         fmt.Sprintf("%s-%d", *job.Name, ix),
+			Image:        *c.Image,
+			Env:          envvars(c),
+			VolumeMounts: volumeMounts(c),
 		})
 	}
 	return containers
 }
 
-func volumes(volumes []*models.Volumes) {
+func volumes(volumes []*models.Volume) []v1.Volume {
 	vs := []v1.Volume{}
 	for _, v := range volumes {
 		vs = append(vs, v1.Volume{
 			Name: *v.Name,
-			PersistentVolumeClaim: *v.PersistentVolumeClaim
+			VolumeSource: v1.VolumeSource{
+				PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
+					ClaimName: *v.PersistentVolumeClaim,
+				},
+			},
 		})
 	}
 	return vs
@@ -207,7 +211,7 @@ func (k *kubernetesPlan) deploy(service *models.ServiceSpecification, client *ku
 				},
 				Spec: v1.PodSpec{
 					Containers: containers(service),
-					Volumes: volumes(service.ServiceSpecificationVolumes)
+					Volumes:    volumes(service.Volumes),
 				},
 			},
 		},
@@ -431,7 +435,7 @@ func (k *kubernetesPlan) createJob(obj *models.JobSpecification) error {
 				},
 				Spec: v1.PodSpec{
 					Containers:    containersForJob(obj),
-					Volumes: volumes(obj.JobSpecificationVolumes)
+					Volumes:       volumes(obj.Volumes),
 					RestartPolicy: "OnFailure",
 				},
 			},
