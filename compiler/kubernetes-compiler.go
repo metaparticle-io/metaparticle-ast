@@ -170,7 +170,7 @@ func containers(service *models.ServiceSpecification) []v1.Container {
 			Image:        *c.Image,
 			Command:      c.Command,
 			Env:          envvars(c),
-			VolumeMounts: volumeMounts(c),
+			VolumeMounts: volumeMounts(c)
 		})
 	}
 	return containers

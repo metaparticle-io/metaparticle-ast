@@ -153,13 +153,23 @@ func init() {
             "type": "string"
           }
         },
+        "cpu": {
+          "type": "string"
+        },
         "env": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/envVar"
           }
         },
+        "gpu": {
+          "type": "integer",
+          "format": "int32"
+        },
         "image": {
+          "type": "string"
+        },
+        "memory": {
           "type": "string"
         },
         "volumeMounts": {

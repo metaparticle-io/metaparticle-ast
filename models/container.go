@@ -20,12 +20,21 @@ type Container struct {
 	// command
 	Command []string `json:"command"`
 
+	// cpu
+	CPU string `json:"cpu,omitempty"`
+
 	// env
 	Env ContainerEnv `json:"env"`
+
+	// gpu
+	Gpu int32 `json:"gpu,omitempty"`
 
 	// image
 	// Required: true
 	Image *string `json:"image"`
+
+	// memory
+	Memory string `json:"memory,omitempty"`
 
 	// volume mounts
 	VolumeMounts ContainerVolumeMounts `json:"volumeMounts"`

@@ -146,6 +146,13 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/volumeMount'
+      gpu:
+        type: integer
+        format: int32
+      cpu:
+        type: string
+      memory:
+        type: string
   servicePort:
     type: object
     required:
