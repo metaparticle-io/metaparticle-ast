@@ -121,6 +121,10 @@ func (k *kubernetesPlan) deleteJob(job *models.JobSpecification, client *kuberne
 	return client.BatchV1().Jobs("default").Delete(*job.Name, &meta.DeleteOptions{})
 }
 
+func (k *kubernetesPlan) deleteTfJob(job *models.TfJobSpecification, client *versioned.Clientset) error {
+	return client.KubeflowV1alpha1().TFJobs("default").Delete(*job.Name, &meta.DeleteOptions{})
+}
+
 func (k *kubernetesPlan) deleteReplicatedService(service *models.ServiceSpecification, client *kubernetes.Clientset) error {
 	name := *service.Name
 	if k.dryrun {
@@ -529,6 +533,11 @@ func (k *kubernetesPlan) Execute(dryrun bool) error {
 				return err
 			}
 		}
+		for ix := range k.service.TfJobs {
+			if err := k.deleteTfJob(k.service.TfJobs[ix], k.tfJobClientSet); err != nil {
+				return err
+			}
+		}
 		return nil
 	}
 	service := k.service
@@ -563,7 +572,7 @@ func (k *kubernetesPlan) Execute(dryrun bool) error {
 }
 
 func (k *kubernetesCompiler) Delete(opts *CompilerOptions, obj *models.Service) (Plan, error) {
-	return &kubernetesPlan{service: obj, clientset: k.clientset, delete: true, opts: opts}, nil
+	return &kubernetesPlan{service: obj, clientset: k.clientset, tfJobClientSet: k.tfJobClientSet, delete: true, opts: opts}, nil
 }
 
 func (k *kubernetesPlan) output(obj interface{}, name string) {
