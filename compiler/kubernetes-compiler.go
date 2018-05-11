@@ -180,9 +180,10 @@ func containersForJob(job *models.JobSpecification) []v1.Container {
 	containers := []v1.Container{}
 	for ix, c := range job.Containers {
 		containers = append(containers, v1.Container{
-			Name:  fmt.Sprintf("%s-%d", *job.Name, ix),
-			Image: *c.Image,
-			Env:   envvars(c),
+			Name:         fmt.Sprintf("%s-%d", *job.Name, ix),
+			Image:        *c.Image,
+			Env:          envvars(c),
+			VolumeMounts: volumeMounts(c),
 		})
 	}
 	return containers
@@ -192,9 +193,10 @@ func containersForReplicaSpec(rs *models.TfReplicaSpec) []v1.Container {
 	containers := []v1.Container{}
 	for _, c := range rs.Containers {
 		containers = append(containers, v1.Container{
-			Name:  "tensorflow",
-			Image: *c.Image,
-			Env:   envvars(c),
+			Name:         "tensorflow",
+			Image:        *c.Image,
+			Env:          envvars(c),
+			VolumeMounts: volumeMounts(c),
 		})
 	}
 	return containers
