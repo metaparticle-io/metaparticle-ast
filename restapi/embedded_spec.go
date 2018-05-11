@@ -278,6 +278,12 @@ func init() {
           "items": {
             "$ref": "#/definitions/serviceSpecification"
           }
+        },
+        "tfJobs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/tfJobSpecification"
+          }
         }
       }
     },
@@ -350,6 +356,52 @@ func init() {
         },
         "urlPattern": {
           "type": "string"
+        }
+      }
+    },
+    "tfJobSpecification": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "replicaSpecs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/tfReplicaSpec"
+          }
+        }
+      }
+    },
+    "tfReplicaSpec": {
+      "type": "object",
+      "properties": {
+        "containers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/container"
+          }
+        },
+        "replicaType": {
+          "type": "string",
+          "enum": [
+            "MASTER",
+            "WORKER",
+            "PS"
+          ]
+        },
+        "replicas": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "volumes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/volume"
+          }
         }
       }
     },

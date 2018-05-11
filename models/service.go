@@ -34,6 +34,9 @@ type Service struct {
 
 	// services
 	Services ServiceServices `json:"services"`
+
+	// tf jobs
+	TfJobs ServiceTfJobs `json:"tfJobs"`
 }
 
 // Validate validates this service

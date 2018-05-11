@@ -43,6 +43,17 @@ definitions:
         format: int32
       schedule:
         type: string
+  tfJobSpecification:
+    type: object
+    required:
+    - name
+    properties:
+      name:
+        type: string
+      replicaSpecs:
+        type: array
+        items:
+          $ref: '#/definitions/tfReplicaSpec'
   shardSpecification:
     type: object
     properties:
@@ -64,6 +75,26 @@ definitions:
         type: string
       public:
         type: boolean
+  tfReplicaSpec:
+    type: object
+    properties:
+      replicas:
+        type: integer
+        format: int32
+      replicaType:
+        type: string
+        enum:
+          - MASTER
+          - WORKER
+          - PS
+      containers:
+        type: array
+        items:
+          $ref: '#/definitions/container'
+      volumes:
+        type: array
+        items:
+          $ref: '#/definitions/volume'
   envVar:
     type: object
     required:
@@ -173,6 +204,10 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/jobSpecification'
+      tfJobs:
+        type: array
+        items:
+          $ref: '#/definitions/tfJobSpecification'
       serve:
         type: object
         $ref: '#/definitions/serveSpecification'

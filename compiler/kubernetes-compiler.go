@@ -27,6 +27,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
+
+	kf "github.com/kubeflow/tf-operator/pkg/apis/tensorflow/v1alpha1"
+	"github.com/kubeflow/tf-operator/pkg/client/clientset/versioned"
 )
 
 var (
@@ -37,8 +40,9 @@ var (
 )
 
 type kubernetesCompiler struct {
-	opts      *CompilerOptions
-	clientset *kubernetes.Clientset
+	opts           *CompilerOptions
+	clientset      *kubernetes.Clientset
+	tfJobClientSet *versioned.Clientset
 }
 
 func homeDir() string {
@@ -68,8 +72,14 @@ func NewKubernetesCompiler() (Compiler, error) {
 		return nil, err
 	}
 
+	tfClientSet, err := versioned.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
 	return &kubernetesCompiler{
-		clientset: clientset,
+		clientset:      clientset,
+		tfJobClientSet: tfClientSet,
 	}, nil
 }
 
@@ -166,11 +176,21 @@ func containersForJob(job *models.JobSpecification) []v1.Container {
 	containers := []v1.Container{}
 	for ix, c := range job.Containers {
 		containers = append(containers, v1.Container{
-			Name:         fmt.Sprintf("%s-%d", *job.Name, ix),
-			Image:        *c.Image,
-			Command:      c.Command,
-			Env:          envvars(c),
-			VolumeMounts: volumeMounts(c),
+			Name:  fmt.Sprintf("%s-%d", *job.Name, ix),
+			Image: *c.Image,
+			Env:   envvars(c),
+		})
+	}
+	return containers
+}
+
+func containersForReplicaSpec(rs *models.TfReplicaSpec) []v1.Container {
+	containers := []v1.Container{}
+	for _, c := range rs.Containers {
+		containers = append(containers, v1.Container{
+			Name:  "tensorflow",
+			Image: *c.Image,
+			Env:   envvars(c),
 		})
 	}
 	return containers
@@ -418,7 +438,7 @@ func (k *kubernetesPlan) createStatefulService(service *models.ServiceSpecificat
 }
 
 func (k *kubernetesCompiler) Compile(opts *CompilerOptions, obj *models.Service) (Plan, error) {
-	return &kubernetesPlan{service: obj, clientset: k.clientset, opts: opts}, nil
+	return &kubernetesPlan{service: obj, clientset: k.clientset, tfJobClientSet: k.tfJobClientSet, opts: opts}, nil
 }
 
 func (k *kubernetesPlan) createJob(obj *models.JobSpecification) error {
@@ -448,12 +468,48 @@ func (k *kubernetesPlan) createJob(obj *models.JobSpecification) error {
 	return err
 }
 
+func (k *kubernetesPlan) createTfJob(obj *models.TfJobSpecification) error {
+	name := *obj.Name
+	job := &kf.TFJob{
+		ObjectMeta: meta.ObjectMeta{
+			Name: name,
+		},
+		Spec: kf.TFJobSpec{
+			ReplicaSpecs: []*kf.TFReplicaSpec{},
+		},
+	}
+
+	for _, s := range obj.ReplicaSpecs {
+		js := &kf.TFReplicaSpec{
+			Replicas:      &s.Replicas,
+			TFReplicaType: kf.TFReplicaType(s.ReplicaType),
+			Template: &v1.PodTemplateSpec{
+				ObjectMeta: meta.ObjectMeta{
+					Labels: map[string]string{
+						"app": name,
+					},
+				},
+				Spec: v1.PodSpec{
+					Containers:    containersForReplicaSpec(s),
+					Volumes:       volumes(s.Volumes),
+					RestartPolicy: "OnFailure",
+				},
+			},
+		}
+		job.Spec.ReplicaSpecs = append(job.Spec.ReplicaSpecs, js)
+	}
+
+	_, err := k.tfJobClientSet.KubeflowV1alpha1().TFJobs("default").Create(job)
+	return err
+}
+
 type kubernetesPlan struct {
-	opts      *CompilerOptions
-	service   *models.Service
-	clientset *kubernetes.Clientset
-	dryrun    bool
-	delete    bool
+	opts           *CompilerOptions
+	service        *models.Service
+	clientset      *kubernetes.Clientset
+	tfJobClientSet *versioned.Clientset
+	dryrun         bool
+	delete         bool
 }
 
 func (k *kubernetesPlan) Dump(dir string) error {
@@ -495,6 +551,11 @@ func (k *kubernetesPlan) Execute(dryrun bool) error {
 	}
 	for ix := range service.Jobs {
 		if err := k.createJob(service.Jobs[ix]); err != nil {
+			return err
+		}
+	}
+	for ix := range service.TfJobs {
+		if err := k.createTfJob(service.TfJobs[ix]); err != nil {
 			return err
 		}
 	}
