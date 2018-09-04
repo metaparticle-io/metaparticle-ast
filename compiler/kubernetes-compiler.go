@@ -28,7 +28,7 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
 
-	kf "github.com/kubeflow/tf-operator/pkg/apis/tensorflow/v1alpha1"
+	kf "github.com/kubeflow/tf-operator/pkg/apis/tensorflow/v1alpha2"
 	"github.com/kubeflow/tf-operator/pkg/client/clientset/versioned"
 )
 
@@ -122,7 +122,7 @@ func (k *kubernetesPlan) deleteJob(job *models.JobSpecification, client *kuberne
 }
 
 func (k *kubernetesPlan) deleteTfJob(job *models.TfJobSpecification, client *versioned.Clientset) error {
-	return client.KubeflowV1alpha1().TFJobs("default").Delete(*job.Name, &meta.DeleteOptions{})
+	return client.KubeflowV1alpha2().TFJobs("default").Delete(*job.Name, &meta.DeleteOptions{})
 }
 
 func (k *kubernetesPlan) deleteReplicatedService(service *models.ServiceSpecification, client *kubernetes.Clientset) error {
@@ -474,22 +474,29 @@ func (k *kubernetesPlan) createJob(obj *models.JobSpecification) error {
 	return err
 }
 
-func (k *kubernetesPlan) createTfJob(obj *models.TfJobSpecification) error {
-	name := *obj.Name
-	job := &kf.TFJob{
-		ObjectMeta: meta.ObjectMeta{
-			Name: name,
-		},
-		Spec: kf.TFJobSpec{
-			ReplicaSpecs: []*kf.TFReplicaSpec{},
-		},
+func getTFReplicaType(replicaType string) kf.TFReplicaType {
+	if replicaType == "MASTER" {
+		return kf.TFReplicaTypeChief
+	}
+	if replicaType == "WORKER" {
+		return kf.TFReplicaTypeChief
+	}
+	if replicaType == "PS" {
+		return kf.TFReplicaTypePS
 	}
 
+	panic(fmt.Sprintf("Unknown replica type: %s", replicaType))
+}
+
+func (k *kubernetesPlan) createTfJob(obj *models.TfJobSpecification) error {
+	name := *obj.Name
+
+	specMap := make(map[kf.TFReplicaType]*kf.TFReplicaSpec)
+
 	for _, s := range obj.ReplicaSpecs {
-		js := &kf.TFReplicaSpec{
-			Replicas:      &s.Replicas,
-			TFReplicaType: kf.TFReplicaType(s.ReplicaType),
-			Template: &v1.PodTemplateSpec{
+		specMap[getTFReplicaType(s.ReplicaType)] = &kf.TFReplicaSpec{
+			Replicas: &s.Replicas,
+			Template: v1.PodTemplateSpec{
 				ObjectMeta: meta.ObjectMeta{
 					Labels: map[string]string{
 						"app": name,
@@ -502,10 +509,18 @@ func (k *kubernetesPlan) createTfJob(obj *models.TfJobSpecification) error {
 				},
 			},
 		}
-		job.Spec.ReplicaSpecs = append(job.Spec.ReplicaSpecs, js)
 	}
 
-	_, err := k.tfJobClientSet.KubeflowV1alpha1().TFJobs("default").Create(job)
+	job := &kf.TFJob{
+		ObjectMeta: meta.ObjectMeta{
+			Name: name,
+		},
+		Spec: kf.TFJobSpec{
+			TFReplicaSpecs: specMap,
+		},
+	}
+
+	_, err := k.tfJobClientSet.KubeflowV1alpha2().TFJobs("default").Create(job)
 	return err
 }
 
