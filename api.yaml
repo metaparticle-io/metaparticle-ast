@@ -31,11 +31,29 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/container'
-      replicas:
+      volumes:
+        type: array
+        items:
+          $ref: '#/definitions/volume'
+      parallelism:
+        type: integer
+        format: int32
+      completion:
         type: integer
         format: int32
       schedule:
         type: string
+  tfJobSpecification:
+    type: object
+    required:
+    - name
+    properties:
+      name:
+        type: string
+      replicaSpecs:
+        type: array
+        items:
+          $ref: '#/definitions/tfReplicaSpec'
   shardSpecification:
     type: object
     properties:
@@ -57,6 +75,26 @@ definitions:
         type: string
       public:
         type: boolean
+  tfReplicaSpec:
+    type: object
+    properties:
+      replicas:
+        type: integer
+        format: int32
+      replicaType:
+        type: string
+        enum:
+          - MASTER
+          - WORKER
+          - PS
+      containers:
+        type: array
+        items:
+          $ref: '#/definitions/container'
+      volumes:
+        type: array
+        items:
+          $ref: '#/definitions/volume'
   envVar:
     type: object
     required:
@@ -67,6 +105,28 @@ definitions:
         type: string
       value:
         type: string
+  volume:
+    type: object
+    required:
+      - name
+      - persistentVolumeClaim
+    properties:
+      name:
+        type: string
+      persistentVolumeClaim:
+        type: string
+  volumeMount:
+    type: object
+    required:
+      - name
+      - mountPath
+    properties:
+      name:
+        type: string
+      mountPath:
+        type: string
+      subPath:
+        type: string
   container:
     type: object
     required:
@@ -74,10 +134,25 @@ definitions:
     properties:
       image:
         type: string
+      command:
+        type: array
+        items:
+          type: string
       env:
         type: array
         items:
           $ref: '#/definitions/envVar'
+      volumeMounts:
+        type: array
+        items:
+          $ref: '#/definitions/volumeMount'
+      gpu:
+        type: integer
+        format: int32
+      cpu:
+        type: string
+      memory:
+        type: string
   servicePort:
     type: object
     required:
@@ -104,6 +179,10 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/container'
+      volumes:
+        type: array
+        items:
+          $ref: '#/definitions/volume'
       ports:
         type: array
         items:
@@ -132,6 +211,10 @@ definitions:
         type: array
         items:
           $ref: '#/definitions/jobSpecification'
+      tfJobs:
+        type: array
+        items:
+          $ref: '#/definitions/tfJobSpecification'
       serve:
         type: object
         $ref: '#/definitions/serveSpecification'

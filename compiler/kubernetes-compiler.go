@@ -27,6 +27,9 @@ import (
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/client-go/tools/clientcmd"
+
+	kf "github.com/kubeflow/tf-operator/pkg/apis/tensorflow/v1alpha2"
+	"github.com/kubeflow/tf-operator/pkg/client/clientset/versioned"
 )
 
 var (
@@ -37,8 +40,9 @@ var (
 )
 
 type kubernetesCompiler struct {
-	opts      *CompilerOptions
-	clientset *kubernetes.Clientset
+	opts           *CompilerOptions
+	clientset      *kubernetes.Clientset
+	tfJobClientSet *versioned.Clientset
 }
 
 func homeDir() string {
@@ -68,13 +72,31 @@ func NewKubernetesCompiler() (Compiler, error) {
 		return nil, err
 	}
 
+	tfClientSet, err := versioned.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
 	return &kubernetesCompiler{
-		clientset: clientset,
+		clientset:      clientset,
+		tfJobClientSet: tfClientSet,
 	}, nil
 }
 
 func makeSharderName(name string) string {
 	return fmt.Sprintf("%s-sharder", name)
+}
+
+func volumeMounts(container *models.Container) []v1.VolumeMount {
+	vms := []v1.VolumeMount{}
+	for _, vm := range container.VolumeMounts {
+		vms = append(vms, v1.VolumeMount{
+			Name:      *vm.Name,
+			MountPath: *vm.MountPath,
+			SubPath:   vm.SubPath,
+		})
+	}
+	return vms
 }
 
 func envvars(container *models.Container) []v1.EnvVar {
@@ -97,6 +119,10 @@ func (k *kubernetesPlan) deleteService(service *models.ServiceSpecification, cli
 
 func (k *kubernetesPlan) deleteJob(job *models.JobSpecification, client *kubernetes.Clientset) error {
 	return client.BatchV1().Jobs("default").Delete(*job.Name, &meta.DeleteOptions{})
+}
+
+func (k *kubernetesPlan) deleteTfJob(job *models.TfJobSpecification, client *versioned.Clientset) error {
+	return client.KubeflowV1alpha2().TFJobs("default").Delete(*job.Name, &meta.DeleteOptions{})
 }
 
 func (k *kubernetesPlan) deleteReplicatedService(service *models.ServiceSpecification, client *kubernetes.Clientset) error {
@@ -140,9 +166,11 @@ func containers(service *models.ServiceSpecification) []v1.Container {
 	containers := []v1.Container{}
 	for ix, c := range service.Containers {
 		containers = append(containers, v1.Container{
-			Name:  fmt.Sprintf("%s-%d", *service.Name, ix),
-			Image: *c.Image,
-			Env:   envvars(c),
+			Name:         fmt.Sprintf("%s-%d", *service.Name, ix),
+			Image:        *c.Image,
+			Command:      c.Command,
+			Env:          envvars(c),
+			VolumeMounts: volumeMounts(c),
 		})
 	}
 	return containers
@@ -152,12 +180,41 @@ func containersForJob(job *models.JobSpecification) []v1.Container {
 	containers := []v1.Container{}
 	for ix, c := range job.Containers {
 		containers = append(containers, v1.Container{
-			Name:  fmt.Sprintf("%s-%d", *job.Name, ix),
-			Image: *c.Image,
-			Env:   envvars(c),
+			Name:         fmt.Sprintf("%s-%d", *job.Name, ix),
+			Image:        *c.Image,
+			Env:          envvars(c),
+			VolumeMounts: volumeMounts(c),
 		})
 	}
 	return containers
+}
+
+func containersForReplicaSpec(rs *models.TfReplicaSpec) []v1.Container {
+	containers := []v1.Container{}
+	for _, c := range rs.Containers {
+		containers = append(containers, v1.Container{
+			Name:         "tensorflow",
+			Image:        *c.Image,
+			Env:          envvars(c),
+			VolumeMounts: volumeMounts(c),
+		})
+	}
+	return containers
+}
+
+func volumes(volumes []*models.Volume) []v1.Volume {
+	vs := []v1.Volume{}
+	for _, v := range volumes {
+		vs = append(vs, v1.Volume{
+			Name: *v.Name,
+			VolumeSource: v1.VolumeSource{
+				PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
+					ClaimName: *v.PersistentVolumeClaim,
+				},
+			},
+		})
+	}
+	return vs
 }
 
 func (k *kubernetesPlan) deploy(service *models.ServiceSpecification, client *kubernetes.Clientset) {
@@ -182,6 +239,7 @@ func (k *kubernetesPlan) deploy(service *models.ServiceSpecification, client *ku
 				},
 				Spec: v1.PodSpec{
 					Containers: containers(service),
+					Volumes:    volumes(service.Volumes),
 				},
 			},
 		},
@@ -386,7 +444,7 @@ func (k *kubernetesPlan) createStatefulService(service *models.ServiceSpecificat
 }
 
 func (k *kubernetesCompiler) Compile(opts *CompilerOptions, obj *models.Service) (Plan, error) {
-	return &kubernetesPlan{service: obj, clientset: k.clientset, opts: opts}, nil
+	return &kubernetesPlan{service: obj, clientset: k.clientset, tfJobClientSet: k.tfJobClientSet, opts: opts}, nil
 }
 
 func (k *kubernetesPlan) createJob(obj *models.JobSpecification) error {
@@ -396,7 +454,8 @@ func (k *kubernetesPlan) createJob(obj *models.JobSpecification) error {
 			Name: name,
 		},
 		Spec: batch.JobSpec{
-			Completions: &obj.Replicas,
+			Completions: &obj.Completion,
+			Parallelism: &obj.Parallelism,
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: meta.ObjectMeta{
 					Labels: map[string]string{
@@ -405,6 +464,7 @@ func (k *kubernetesPlan) createJob(obj *models.JobSpecification) error {
 				},
 				Spec: v1.PodSpec{
 					Containers:    containersForJob(obj),
+					Volumes:       volumes(obj.Volumes),
 					RestartPolicy: "OnFailure",
 				},
 			},
@@ -414,12 +474,63 @@ func (k *kubernetesPlan) createJob(obj *models.JobSpecification) error {
 	return err
 }
 
+func getTFReplicaType(replicaType string) kf.TFReplicaType {
+	if replicaType == "MASTER" {
+		return kf.TFReplicaTypeChief
+	}
+	if replicaType == "WORKER" {
+		return kf.TFReplicaTypeChief
+	}
+	if replicaType == "PS" {
+		return kf.TFReplicaTypePS
+	}
+
+	panic(fmt.Sprintf("Unknown replica type: %s", replicaType))
+}
+
+func (k *kubernetesPlan) createTfJob(obj *models.TfJobSpecification) error {
+	name := *obj.Name
+
+	specMap := make(map[kf.TFReplicaType]*kf.TFReplicaSpec)
+
+	for _, s := range obj.ReplicaSpecs {
+		specMap[getTFReplicaType(s.ReplicaType)] = &kf.TFReplicaSpec{
+			Replicas: &s.Replicas,
+			Template: v1.PodTemplateSpec{
+				ObjectMeta: meta.ObjectMeta{
+					Labels: map[string]string{
+						"app": name,
+					},
+				},
+				Spec: v1.PodSpec{
+					Containers:    containersForReplicaSpec(s),
+					Volumes:       volumes(s.Volumes),
+					RestartPolicy: "OnFailure",
+				},
+			},
+		}
+	}
+
+	job := &kf.TFJob{
+		ObjectMeta: meta.ObjectMeta{
+			Name: name,
+		},
+		Spec: kf.TFJobSpec{
+			TFReplicaSpecs: specMap,
+		},
+	}
+
+	_, err := k.tfJobClientSet.KubeflowV1alpha2().TFJobs("default").Create(job)
+	return err
+}
+
 type kubernetesPlan struct {
-	opts      *CompilerOptions
-	service   *models.Service
-	clientset *kubernetes.Clientset
-	dryrun    bool
-	delete    bool
+	opts           *CompilerOptions
+	service        *models.Service
+	clientset      *kubernetes.Clientset
+	tfJobClientSet *versioned.Clientset
+	dryrun         bool
+	delete         bool
 }
 
 func (k *kubernetesPlan) Dump(dir string) error {
@@ -436,6 +547,11 @@ func (k *kubernetesPlan) Execute(dryrun bool) error {
 		}
 		for ix := range k.service.Jobs {
 			if err := k.deleteJob(k.service.Jobs[ix], k.clientset); err != nil {
+				return err
+			}
+		}
+		for ix := range k.service.TfJobs {
+			if err := k.deleteTfJob(k.service.TfJobs[ix], k.tfJobClientSet); err != nil {
 				return err
 			}
 		}
@@ -464,11 +580,16 @@ func (k *kubernetesPlan) Execute(dryrun bool) error {
 			return err
 		}
 	}
+	for ix := range service.TfJobs {
+		if err := k.createTfJob(service.TfJobs[ix]); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
 func (k *kubernetesCompiler) Delete(opts *CompilerOptions, obj *models.Service) (Plan, error) {
-	return &kubernetesPlan{service: obj, clientset: k.clientset, delete: true, opts: opts}, nil
+	return &kubernetesPlan{service: obj, clientset: k.clientset, tfJobClientSet: k.tfJobClientSet, delete: true, opts: opts}, nil
 }
 
 func (k *kubernetesPlan) output(obj interface{}, name string) {

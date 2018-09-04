@@ -147,14 +147,36 @@ func init() {
         "image"
       ],
       "properties": {
+        "command": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "cpu": {
+          "type": "string"
+        },
         "env": {
           "type": "array",
           "items": {
             "$ref": "#/definitions/envVar"
           }
         },
+        "gpu": {
+          "type": "integer",
+          "format": "int32"
+        },
         "image": {
           "type": "string"
+        },
+        "memory": {
+          "type": "string"
+        },
+        "volumeMounts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/volumeMount"
+          }
         }
       }
     },
@@ -194,6 +216,10 @@ func init() {
         "name"
       ],
       "properties": {
+        "completion": {
+          "type": "integer",
+          "format": "int32"
+        },
         "containers": {
           "type": "array",
           "items": {
@@ -203,12 +229,18 @@ func init() {
         "name": {
           "type": "string"
         },
-        "replicas": {
+        "parallelism": {
           "type": "integer",
           "format": "int32"
         },
         "schedule": {
           "type": "string"
+        },
+        "volumes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/volume"
+          }
         }
       }
     },
@@ -255,6 +287,12 @@ func init() {
           "type": "array",
           "items": {
             "$ref": "#/definitions/serviceSpecification"
+          }
+        },
+        "tfJobs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/tfJobSpecification"
           }
         }
       }
@@ -307,6 +345,12 @@ func init() {
         },
         "shardSpec": {
           "$ref": "#/definitions/shardSpecification"
+        },
+        "volumes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/volume"
+          }
         }
       }
     },
@@ -321,6 +365,85 @@ func init() {
           "format": "int32"
         },
         "urlPattern": {
+          "type": "string"
+        }
+      }
+    },
+    "tfJobSpecification": {
+      "type": "object",
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "replicaSpecs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/tfReplicaSpec"
+          }
+        }
+      }
+    },
+    "tfReplicaSpec": {
+      "type": "object",
+      "properties": {
+        "containers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/container"
+          }
+        },
+        "replicaType": {
+          "type": "string",
+          "enum": [
+            "MASTER",
+            "WORKER",
+            "PS"
+          ]
+        },
+        "replicas": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "volumes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/volume"
+          }
+        }
+      }
+    },
+    "volume": {
+      "type": "object",
+      "required": [
+        "name",
+        "persistentVolumeClaim"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "persistentVolumeClaim": {
+          "type": "string"
+        }
+      }
+    },
+    "volumeMount": {
+      "type": "object",
+      "required": [
+        "name",
+        "mountPath"
+      ],
+      "properties": {
+        "mountPath": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "subPath": {
           "type": "string"
         }
       }

@@ -13,35 +13,29 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// JobSpecification job specification
-// swagger:model jobSpecification
-type JobSpecification struct {
-
-	// completion
-	Completion int32 `json:"completion,omitempty"`
-
-	// containers
-	Containers JobSpecificationContainers `json:"containers"`
+// Volume volume
+// swagger:model volume
+type Volume struct {
 
 	// name
 	// Required: true
 	Name *string `json:"name"`
 
-	// parallelism
-	Parallelism int32 `json:"parallelism,omitempty"`
-
-	// schedule
-	Schedule string `json:"schedule,omitempty"`
-
-	// volumes
-	Volumes JobSpecificationVolumes `json:"volumes"`
+	// persistent volume claim
+	// Required: true
+	PersistentVolumeClaim *string `json:"persistentVolumeClaim"`
 }
 
-// Validate validates this job specification
-func (m *JobSpecification) Validate(formats strfmt.Registry) error {
+// Validate validates this volume
+func (m *Volume) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateName(formats); err != nil {
+		// prop
+		res = append(res, err)
+	}
+
+	if err := m.validatePersistentVolumeClaim(formats); err != nil {
 		// prop
 		res = append(res, err)
 	}
@@ -52,7 +46,7 @@ func (m *JobSpecification) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *JobSpecification) validateName(formats strfmt.Registry) error {
+func (m *Volume) validateName(formats strfmt.Registry) error {
 
 	if err := validate.Required("name", "body", m.Name); err != nil {
 		return err
@@ -61,8 +55,17 @@ func (m *JobSpecification) validateName(formats strfmt.Registry) error {
 	return nil
 }
 
+func (m *Volume) validatePersistentVolumeClaim(formats strfmt.Registry) error {
+
+	if err := validate.Required("persistentVolumeClaim", "body", m.PersistentVolumeClaim); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // MarshalBinary interface implementation
-func (m *JobSpecification) MarshalBinary() ([]byte, error) {
+func (m *Volume) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -70,8 +73,8 @@ func (m *JobSpecification) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *JobSpecification) UnmarshalBinary(b []byte) error {
-	var res JobSpecification
+func (m *Volume) UnmarshalBinary(b []byte) error {
+	var res Volume
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

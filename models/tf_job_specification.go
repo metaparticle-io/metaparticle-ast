@@ -13,32 +13,20 @@ import (
 	"github.com/go-openapi/validate"
 )
 
-// JobSpecification job specification
-// swagger:model jobSpecification
-type JobSpecification struct {
-
-	// completion
-	Completion int32 `json:"completion,omitempty"`
-
-	// containers
-	Containers JobSpecificationContainers `json:"containers"`
+// TfJobSpecification tf job specification
+// swagger:model tfJobSpecification
+type TfJobSpecification struct {
 
 	// name
 	// Required: true
 	Name *string `json:"name"`
 
-	// parallelism
-	Parallelism int32 `json:"parallelism,omitempty"`
-
-	// schedule
-	Schedule string `json:"schedule,omitempty"`
-
-	// volumes
-	Volumes JobSpecificationVolumes `json:"volumes"`
+	// replica specs
+	ReplicaSpecs TfJobSpecificationReplicaSpecs `json:"replicaSpecs"`
 }
 
-// Validate validates this job specification
-func (m *JobSpecification) Validate(formats strfmt.Registry) error {
+// Validate validates this tf job specification
+func (m *TfJobSpecification) Validate(formats strfmt.Registry) error {
 	var res []error
 
 	if err := m.validateName(formats); err != nil {
@@ -52,7 +40,7 @@ func (m *JobSpecification) Validate(formats strfmt.Registry) error {
 	return nil
 }
 
-func (m *JobSpecification) validateName(formats strfmt.Registry) error {
+func (m *TfJobSpecification) validateName(formats strfmt.Registry) error {
 
 	if err := validate.Required("name", "body", m.Name); err != nil {
 		return err
@@ -62,7 +50,7 @@ func (m *JobSpecification) validateName(formats strfmt.Registry) error {
 }
 
 // MarshalBinary interface implementation
-func (m *JobSpecification) MarshalBinary() ([]byte, error) {
+func (m *TfJobSpecification) MarshalBinary() ([]byte, error) {
 	if m == nil {
 		return nil, nil
 	}
@@ -70,8 +58,8 @@ func (m *JobSpecification) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary interface implementation
-func (m *JobSpecification) UnmarshalBinary(b []byte) error {
-	var res JobSpecification
+func (m *TfJobSpecification) UnmarshalBinary(b []byte) error {
+	var res TfJobSpecification
 	if err := swag.ReadJSON(b, &res); err != nil {
 		return err
 	}

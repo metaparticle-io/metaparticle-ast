@@ -9,5 +9,19 @@
                { "image": "busybox" }
             ]
         }
+    ],
+    "tfJobs": [
+        {
+           "name": "tf1",
+           "replicaSpecs": [{
+                "replicas": 1,
+                "replicaType": "MASTER",
+                "containers": [
+                    { "image": "busybox" }
+                 ]  
+           }]
+        }
     ]
 }
+
+

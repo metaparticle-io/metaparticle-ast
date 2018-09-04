@@ -17,17 +17,37 @@ import (
 // swagger:model container
 type Container struct {
 
+	// command
+	Command []string `json:"command"`
+
+	// cpu
+	CPU string `json:"cpu,omitempty"`
+
 	// env
 	Env ContainerEnv `json:"env"`
+
+	// gpu
+	Gpu int32 `json:"gpu,omitempty"`
 
 	// image
 	// Required: true
 	Image *string `json:"image"`
+
+	// memory
+	Memory string `json:"memory,omitempty"`
+
+	// volume mounts
+	VolumeMounts ContainerVolumeMounts `json:"volumeMounts"`
 }
 
 // Validate validates this container
 func (m *Container) Validate(formats strfmt.Registry) error {
 	var res []error
+
+	if err := m.validateCommand(formats); err != nil {
+		// prop
+		res = append(res, err)
+	}
 
 	if err := m.validateImage(formats); err != nil {
 		// prop
@@ -37,6 +57,15 @@ func (m *Container) Validate(formats strfmt.Registry) error {
 	if len(res) > 0 {
 		return errors.CompositeValidationError(res...)
 	}
+	return nil
+}
+
+func (m *Container) validateCommand(formats strfmt.Registry) error {
+
+	if swag.IsZero(m.Command) { // not required
+		return nil
+	}
+
 	return nil
 }
 

@@ -38,6 +38,9 @@ type ServiceSpecification struct {
 
 	// shard spec
 	ShardSpec *ShardSpecification `json:"shardSpec,omitempty"`
+
+	// volumes
+	Volumes ServiceSpecificationVolumes `json:"volumes"`
 }
 
 // Validate validates this service specification
